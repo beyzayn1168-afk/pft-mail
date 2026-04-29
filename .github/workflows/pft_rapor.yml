@@ -1,0 +1,31 @@
+name: Alpine PFT Otomasyonu
+
+on:
+  schedule:
+    # Türkiye saatiyle 13:10 (UTC 10:10)
+    - cron: '10 10 * * *'
+  workflow_dispatch: # İstediğimiz zaman manuel çalıştırmak için buton ekler
+
+jobs:
+  alpine-pft-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodları GitHub'dan Çek
+        uses: actions/checkout@v3
+
+      - name: Python Kur
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.14'
+
+      - name: Gerekli Paketleri Yükle
+        run: |
+          pip install pandas matplotlib openpyxl eptr2
+
+      - name: Raporu Hazırla ve Mail At
+        env:
+          EPIAS_USERNAME: ${{ secrets.EPIAS_USERNAME }}
+          EPIAS_PASSWORD: ${{ secrets.EPIAS_PASSWORD }}
+          OUTLOOK_MAIL: ${{ secrets.OUTLOOK_MAIL }}
+          OUTLOOK_PASS: ${{ secrets.OUTLOOK_PASS }}
+        run: python mail.py
