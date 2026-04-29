@@ -52,8 +52,10 @@ SMTP_PORT    = 587
 # True = dünün verisi (test), False = yarının verisi (normal)
 TEST_MODU = True
 
-MUSTERI_LISTESI = [
-    {"ad": "Müşteri Bir", "email": "beyzanur.ozbek@alpineenerji.com.tr"}
+# Mail gönderilecek kişiler (Bu satırı dosyanın üst kısımlarına, importlardan sonraya ekle)
+MUSTERILER = [
+    {"ad": "Beyzanur Özbek", "mail": "beyzanur.ozbek@alpineenerji.com.tr"},
+    # Buraya başka müşteriler de ekleyebilirsin
 ]
 
 #  LOGGING
