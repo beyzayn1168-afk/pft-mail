@@ -398,31 +398,38 @@ def mail_gonder(musteri: dict, veri: list, tarih: str, xlsx_bytes: bytes, grafik
 # ─────────────────────────────────────────────
 #  ANA AKIŞ
 # ─────────────────────────────────────────────
-
 def main():
-    log.info("=" * 55)
-    log.info(f"Başlatıldı. Mod: {'TEST (dün)' if TEST_MODU else 'NORMAL (yarın)'}")
-
     try:
+        log.info("=======================================================")
+        log.info(f"Başlatıldı.")
+        
         veri, tarih = pft_veri_cek()
-        xlsx_bytes = xlsx_olustur(veri, tarih)
         grafik_b64 = grafik_olustur(veri, tarih)
-
-        basarili = basarisiz = 0
-        for musteri in MUSTERI_LISTESI:
+        xlsx_bytes = xlsx_olustur(veri, tarih)
+        
+        gonderilen_adet = 0
+        hata_adet = 0
+        
+        for musteri in MUSTERILER:
             try:
                 mail_gonder(musteri, veri, tarih, xlsx_bytes, grafik_b64)
-                basarili += 1
+                gonderilen_adet += 1
+                log.info(f"✓ Mail başarıyla gönderildi -> {musteri['email']}")
             except Exception as e:
-                log.error(f"✗ Mail gönderilemedi → {musteri['email']}: {e}")
-                basarisiz += 1
-
-        log.info(f"Tamamlandı. ✓ {basarili} gönderildi, ✗ {basarisiz} hata.")
-
+                log.error(f"X Mail gönderilemedi -> {musteri['email']}: {e}")
+                hata_adet += 1
+        
+        log.info(f"Tamamlandı. ✓ {gonderilen_adet} gönderildi, X {hata_adet} hata.")
+        
+        # Kritik ekleme: Eğer mail gitmediyse GitHub'a hata verdirir
+        if gonderilen_adet == 0:
+            import sys
+            sys.exit(1) 
+            
     except Exception as e:
-        log.error(f"KRİTİK HATA: {e}")
-        raise
-
+        log.error(f"Ana süreç hatası: {e}")
+        import sys
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
