@@ -401,7 +401,7 @@ def mail_gonder(musteri: dict, veri: list, tarih: str, xlsx_bytes: bytes, grafik
 def main():
     try:
         log.info("=======================================================")
-        log.info(f"Başlatıldı.")
+        log.info("Alpine PFT Robotu İşlemi Başlatıyor...")
         
         veri, tarih = pft_veri_cek()
         grafik_b64 = grafik_olustur(veri, tarih)
@@ -414,20 +414,20 @@ def main():
             try:
                 mail_gonder(musteri, veri, tarih, xlsx_bytes, grafik_b64)
                 gonderilen_adet += 1
-                log.info(f"✓ Mail başarıyla gönderildi -> {musteri['email']}")
+                log.info(f"✓ Başarılı: {musteri['email']} adresine gönderildi.")
             except Exception as e:
-                log.error(f"X Mail gönderilemedi -> {musteri['email']}: {e}")
+                log.error(f"X Hata: {musteri['email']} adresine gönderilemedi: {e}")
                 hata_adet += 1
         
-        log.info(f"Tamamlandı. ✓ {gonderilen_adet} gönderildi, X {hata_adet} hata.")
+        log.info(f"Sonuç: {gonderilen_adet} başarılı, {hata_adet} hata.")
         
-        # Kritik ekleme: Eğer mail gitmediyse GitHub'a hata verdirir
+        # Mail gitmediyse GitHub Actions ekranı KIRMIZI yansın (Hata Takibi için)
         if gonderilen_adet == 0:
             import sys
             sys.exit(1) 
             
     except Exception as e:
-        log.error(f"Ana süreç hatası: {e}")
+        log.error(f"Sistem Hatası: {e}")
         import sys
         sys.exit(1)
 
