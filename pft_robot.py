@@ -35,10 +35,15 @@ TEST_MODU = False
 # MÜŞTERİ LİSTESİ (Tasarım kodunla uyumlu hale getirildi)
 
 # MÜŞTERİ LİSTESİ (Süslü parantez kullanarak düzeltildi)
+# MÜŞTERİ LİSTESİ - Tam Liste (Süslü Parantez Formatı)
 MUSTERI_LISTESI = [
+    {"ad": "Hamdi Alp", "email": "hamdi.alp@alpineenerji.com.tr"},
+    {"ad": "Rıdvan Dindar", "email": "ridvan.dindar@alpineenerji.com.tr"},
+    {"ad": "Gökhan Yıldız", "email": "gokhan.yildiz@alpineenerji.com.tr"},
+    {"ad": "Gülnaz Coşgun", "email": "gulnaz.cosgun@alpineenerji.com.tr"},
+    {"ad": "Berke Celik", "email": "berke.celik@alpineenerji.com.tr"},
     {"ad": "Beyza Nur Özbek", "email": "beyzanur.ozbek@alpineenerji.com.tr"}
 ]
-
 #  LOGGING
 # ─────────────────────────────────────────────
 logging.basicConfig(
