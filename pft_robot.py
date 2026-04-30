@@ -34,8 +34,9 @@ TEST_MODU = False
 
 # MÜŞTERİ LİSTESİ (Tasarım kodunla uyumlu hale getirildi)
 
+# MÜŞTERİ LİSTESİ (Süslü parantez kullanarak düzeltildi)
 MUSTERI_LISTESI = [
-     ("ad": "Beyza Nur Özbek", "email": "beyzanur.ozbek@alpineenerji.com.tr")
+    {"ad": "Beyza Nur Özbek", "email": "beyzanur.ozbek@alpineenerji.com.tr"}
 ]
 
 #  LOGGING
