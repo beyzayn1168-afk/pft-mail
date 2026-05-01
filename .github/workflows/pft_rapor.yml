@@ -1,4 +1,4 @@
-name: Alpine PFT Otomasyonu
+name: Alpine PFT Otomasyonu 13.10
 
 on:
   schedule:
