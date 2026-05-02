@@ -3,7 +3,7 @@ name: Alpine PFT Otomasyonu 13.10
 on:
   schedule:
     # Türkiye saatiyle 13:10 (UTC 10:10)
-    - cron: '10 10 * * *'
+    - cron: '47 10 * * *'
   workflow_dispatch: # İstediğimiz zaman manuel çalıştırmak için buton ekler
 
 jobs:
