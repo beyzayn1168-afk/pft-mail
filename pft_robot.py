@@ -10,10 +10,10 @@ from email.mime.base import MIMEBase
 from email import encoders
 
 import matplotlib
-
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+from matplotlib.image import imread
 import numpy as np
 
 import openpyxl
@@ -23,14 +23,13 @@ from eptr2 import EPTR2
 # ─────────────────────────────────────────────
 #  LOGO — Kod ile aynı klasörde olmalı
 # ─────────────────────────────────────────────
-#  LOGO — Kod ile aynı klasörde olmalı
-# ─────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_PATH_JPG = os.path.join(BASE_DIR, "Alpine-enerji.jpg")
 LOGO_PATH_PNG = os.path.join(BASE_DIR, "Alpine-enerji.png")
 
-# Hata vermemesi için direkt boş geçiyoruz
-LOGO_B64 = ""   
+# Hata vermemesi için boş tanımlıyoruz
+LOGO_B64 = ""
+LOGO_MAIL_SRC = ""
 
 # ─────────────────────────────────────────────
 #  AYARLAR — GitHub Secrets'tan Okunur
@@ -43,18 +42,12 @@ OUTLOOK_PASS   = os.getenv("OUTLOOK_PASS")
 SMTP_SERVER  = "smtp.office365.com"
 SMTP_PORT    = 587
 
-# NORMAL ÇALIŞMA: Yarının verisini çeker
 TEST_MODU = False 
 
-# MÜŞTERİ LİSTESİ (Tasarım kodunla uyumlu hale getirildi)
-
-# MÜŞTERİ LİSTESİ (Süslü parantez kullanarak düzeltildi)
-# MÜŞTERİ LİSTESİ - Tam Liste (Süslü Parantez Formatı)
 MUSTERI_LISTESI = [
     {"ad": "Beyza Nur Özbek", "email": "beyzanur.ozbek@alpineenerji.com.tr"}
 ]
 
-# ─────────────────────────────────────────────
 # ─────────────────────────────────────────────
 #  LOGGING
 logging.basicConfig(
@@ -74,7 +67,7 @@ def saat_aralik(saat_no: str) -> str:
 
 
 def ptf_veri_cek():
-    hedef = datetime.now()  # TEST: bugünün verisi çekiliyor
+    hedef = datetime.now()
     tarih_str = hedef.strftime("%Y-%m-%d")
     log.info(f"Bugünün ({tarih_str}) PTF verisi deneniyor... [TEST MODU]")
 
@@ -158,10 +151,10 @@ def grafik_olustur(veri: list, tarih: str) -> str:
     fig.text(0.5, 0.94, f"EPİAŞ Kesinleşmemiş Piyasa Takas Fiyatı (PTF) — {tarih_fmt}",
              ha="center", fontsize=10, fontweight="bold", color="#222")
 
-    # ── LOGO (sağ üst köşe, metin yerine) ──
+    # ── LOGO (sağ üst köşe) ──
     try:
         logo_img = imread(LOGO_PATH_PNG)
-        logo_ax = fig.add_axes([0.82, 0.88, 0.14, 0.10])  # [sol, alt, genişlik, yükseklik]
+        logo_ax = fig.add_axes([0.82, 0.88, 0.14, 0.10])
         logo_ax.imshow(logo_img)
         logo_ax.axis("off")
     except Exception as e:
@@ -226,19 +219,16 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     for col, w in zip("ABC", [15, 20, 20]):
         ws.column_dimensions[col].width = w
 
-    # ── LOGO (A1:C1 merge, ortada) ──
-    ws.row_dimensions[1].height = 50
-    # Satır 1: Logo A1'de ortalanmış, Başlık B1:C1 merge
     ws.row_dimensions[1].height = 55
-    # Sütun genişlikleri: A=20, B=20, C=15 → tablo toplam genişliğiyle uyumlu
     ws.column_dimensions["A"].width = 20
     ws.column_dimensions["B"].width = 20
     ws.column_dimensions["C"].width = 15
     ws.merge_cells("B1:C1")
+    
     try:
         from openpyxl.drawing.image import Image as XLImage
         xl_logo = XLImage(LOGO_PATH_JPG)
-        xl_logo.width  = 148  # A sütunu ~150px → logo sütuna tam sığıyor, ortalı
+        xl_logo.width  = 148
         xl_logo.height = 45
         xl_logo.anchor = "A1"
         ws.add_image(xl_logo)
@@ -267,7 +257,7 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
         c = ws.cell(row=i, column=2, value=row["saat"]); c.font=bf; c.alignment=center_align; c.fill=rf; c.border=thin_border
         c = ws.cell(row=i, column=3, value=fiyat);       c.font=bf; c.number_format='#,##0.00'; c.alignment=center_align; c.fill=rf; c.border=thin_border
 
-    # Excel içi grafik (logo ile)
+    # Excel içi grafik
     saatler  = [r["saat_no"] + ":00" for r in veri]
     fiyatlar = [float(r["fiyat"]) for r in veri]
     fig2, ax2 = plt.subplots(figsize=(8, 4))
@@ -278,7 +268,6 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     ax2.grid(axis="y", linestyle="--", alpha=0.3)
     plt.title(f"EPİAŞ Kesinleşmemiş PTF - {tarih_fmt}", fontsize=11, color="#222222", fontweight="bold", pad=25)
 
-    # Excel grafiğine logo ekle
     try:
         logo_img2 = imread(LOGO_PATH_PNG)
         logo_ax2  = fig2.add_axes([0.78, 0.88, 0.18, 0.12])
@@ -317,7 +306,6 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
     <tr><td align="center" style="padding:24px 8px;">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px; background:#fff; border-radius:8px;">
 
-        <!-- HEADER -->
         <tr>
           <td style="background:#201F5A; padding:16px 30px; border-radius:8px 8px 0 0;">
             <table width="100%" cellpadding="0" cellspacing="0">
@@ -336,7 +324,6 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
           </td>
         </tr>
 
-        <!-- İÇERİK -->
         <tr>
           <td style="padding:25px 30px;">
             <p style="font-size:15px;">Sayın <b>{musteri_ad}</b>,</p>
@@ -346,7 +333,6 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
           </td>
         </tr>
 
-        <!-- GRAFİK -->
         <tr>
           <td align="center" style="padding:0 30px;">
             <img src="data:image/png;base64,{grafik_b64}"
@@ -354,7 +340,6 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
           </td>
         </tr>
 
-        <!-- FOOTER -->
         <tr>
           <td style="padding:20px 30px;">
             <p style="font-size:12px; color:#666; border-top:1px solid #eee; padding-top:10px; font-weight:bold;">
