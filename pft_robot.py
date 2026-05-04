@@ -20,11 +20,9 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from eptr2 import EPTR2
 
-
 # ─────────────────────────────────────────────
 #  LOGO — Kod ile aynı klasörde olmalı
 # ─────────────────────────────────────────────
-# Kodun çalıştığı dizini dinamik olarak alır (Hem Windows hem Linux uyumlu)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 LOGO_PATH_JPG = os.path.join(BASE_DIR, "Alpine-enerji.jpg")
@@ -36,7 +34,8 @@ if os.path.exists(LOGO_PATH_JPG):
         LOGO_B64 = base64.b64encode(f.read()).decode("utf-8")
 else:
     LOGO_B64 = ""
-    logging.warning(f"⚠️ Logo dosyası bulunamadı: {LOGO_PATH_JPG}")
+    log.warning(f"⚠️ Logo dosyası bulunamadı: {LOGO_PATH_JPG}")
+    
 
 # ─────────────────────────────────────────────
 #  AYARLAR — GitHub Secrets'tan Okunur
