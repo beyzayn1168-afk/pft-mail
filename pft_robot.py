@@ -23,19 +23,14 @@ from eptr2 import EPTR2
 # ─────────────────────────────────────────────
 #  LOGO — Kod ile aynı klasörde olmalı
 # ─────────────────────────────────────────────
+#  LOGO — Kod ile aynı klasörde olmalı
+# ─────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 LOGO_PATH_JPG = os.path.join(BASE_DIR, "Alpine-enerji.jpg")
 LOGO_PATH_PNG = os.path.join(BASE_DIR, "Alpine-enerji.png")
 
-# Logo dosyasını base64'e çevir (Güvenli kontrol)
-if os.path.exists(LOGO_PATH_JPG):
-    with open(LOGO_PATH_JPG, "rb") as f:
-        LOGO_B64 = base64.b64encode(f.read()).decode("utf-8")
-else:
-    LOGO_B64 = ""
-    log.warning(f"⚠️ Logo dosyası bulunamadı: {LOGO_PATH_JPG}")
-    
+# Hata vermemesi için direkt boş geçiyoruz
+LOGO_B64 = ""   
 
 # ─────────────────────────────────────────────
 #  AYARLAR — GitHub Secrets'tan Okunur
