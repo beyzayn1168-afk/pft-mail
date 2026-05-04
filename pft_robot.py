@@ -10,9 +10,11 @@ from email.mime.base import MIMEBase
 from email import encoders
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+import numpy as np
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -37,15 +39,10 @@ TEST_MODU = False
 # MÜŞTERİ LİSTESİ (Süslü parantez kullanarak düzeltildi)
 # MÜŞTERİ LİSTESİ - Tam Liste (Süslü Parantez Formatı)
 MUSTERI_LISTESI = [
-    {"ad": "Hamdi Alp", "email": "hamdi.alp@alpineenerji.com.tr"},
-    {"ad": "Rıdvan Dindar", "email": "ridvan.dindar@alpineenerji.com.tr"},
-    {"ad": "Gökhan Yıldız", "email": "gokhan.yildiz@alpineenerji.com.tr"},
-    {"ad": "Gülnaz Coşgun", "email": "gulnaz.cosgun@alpineenerji.com.tr"},
-    {"ad": "Berke Celik", "email": "berke.celik@alpineenerji.com.tr"},
     {"ad": "Beyza Nur Özbek", "email": "beyzanur.ozbek@alpineenerji.com.tr"}
 ]
-#  LOGGING
 # ─────────────────────────────────────────────
+#  LOGGING
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -53,9 +50,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────
-#  YARDIMCI: saat aralığı formatla
-# ─────────────────────────────────────────────
+
 def saat_aralik(saat_no: str) -> str:
     try:
         h = int(saat_no)
@@ -63,81 +58,135 @@ def saat_aralik(saat_no: str) -> str:
     except Exception:
         return saat_no
 
-# ─────────────────────────────────────────────
-#  PFT VERİSİ ÇEK
-# ─────────────────────────────────────────────
-def pft_veri_cek():
+
+def ptf_veri_cek():
+    # EPİAŞ'ta yarının verisi bugün açıklandığı için hedef tarihi 1 gün ileriye alıyoruz.
     hedef = datetime.now() + timedelta(days=1)
     tarih_str = hedef.strftime("%Y-%m-%d")
-
-    log.info(f"Yarının kesinleşmemiş PFT verisi çekiliyor: {tarih_str}")
+    log.info(f"Yarının ({tarih_str}) PTF verisi deneniyor...")
 
     eptr = EPTR2(username=EPIAS_USERNAME, password=EPIAS_PASSWORD)
-    df = eptr.call("interim-mcp", start_date=tarih_str, end_date=tarih_str)
 
-    veri = []
-    for _, row in df.iterrows():
-        saat_no = str(row.get("hour", ""))
-        fiyat = row.get("marketTradePrice", None)
-        veri.append({
-            "saat_no": saat_no,
-            "saat": saat_aralik(saat_no),
-            "fiyat": fiyat if fiyat is not None else 0.0,
-            "fiyat_str": str(fiyat) if fiyat is not None else "-",
-        })
+    try:
+        df = eptr.call("interim-mcp", start_date=tarih_str, end_date=tarih_str)
 
-    if not veri:
-        raise ValueError(f"{tarih_str} tarihli PFT verisi henüz yayınlanmamış.")
+        # Yarının verisi henüz açıklanmadıysa süreci durduruyoruz.
+        if df is None or df.empty:
+            log.warning(f"⚠️ {tarih_str} tarihli PTF verisi henüz EPİAŞ tarafından yayınlanmamış.")
+            return None, tarih_str
 
-    log.info(f"{len(veri)} saatlik kayıt alındı.")
-    return veri, tarih_str
+        veri = []
+        for _, row in df.iterrows():
+            saat_no = str(row.get("hour", ""))
+            fiyat = row.get("marketTradePrice", None)
+            veri.append({
+                "saat_no": saat_no,
+                "saat": saat_aralik(saat_no),
+                "fiyat": fiyat if fiyat is not None else 0.0,
+                "fiyat_str": str(fiyat) if fiyat is not None else "-",
+            })
 
-# ─────────────────────────────────────────────
-#  GRAFİK OLUŞTUR (ORİJİNAL TASARIMIN)
-# ─────────────────────────────────────────────
+        if not veri:
+            log.warning(f"⚠️ {tarih_str} tarihli PTF verisi boş geldi.")
+            return None, tarih_str
+
+        log.info(f"✓ Yarının ({tarih_str}) verisi başarıyla alındı. ({len(veri)} saatlik)")
+        return veri, tarih_str
+
+    except Exception as e:
+        log.error(f"HATA: Veri çekilirken bir sorun oluştu: {e}")
+        return None, tarih_str
+
 def grafik_olustur(veri: list, tarih: str) -> str:
-    def format_aralik(s_no):
-        try: h = int(s_no.split(":")[0])
-        except: h = int(s_no)
-        return f"{h:02d}:00-{(h + 1) % 24:02d}:00"
+    def fmt_iki_satir_saat(s_no):
+        try:
+            h = int(s_no.split(":")[0])
+        except:
+            h = int(s_no)
+        # Alt alta iki satır yaparak metnin taşmasını ve iç içe girmesini önlüyoruz
+        return f"{h:02d}:00\n{(h + 1) % 24:02d}:00"
 
-    saat_araliklari = [format_aralik(r["saat_no"]) for r in veri]
+    n = len(veri)
+    saat_araliklari = [fmt_iki_satir_saat(r["saat_no"]) for r in veri]
     fiyatlar = [float(r["fiyat"]) for r in veri]
     tarih_fmt = datetime.strptime(tarih, "%Y-%m-%d").strftime("%d.%m.%Y")
 
     NAVY = "#201F5A"
     BRIGHT_NAVY = "#2b2982"
 
-    fig, ax = plt.subplots(figsize=(14, 5.5))
+    # Figür boyutu
+    fig = plt.figure(figsize=(12, 5))
     fig.patch.set_facecolor("white")
 
-    ax.plot(range(len(saat_araliklari)), fiyatlar, color=NAVY, linewidth=2.5, marker='o', markersize=5)
-    ax.fill_between(range(len(saat_araliklari)), fiyatlar, color=NAVY, alpha=0.08)
+    # ── GRAFİK ALANI ──
+    # Grafik alt sınırını 0.24'e çekerek tabloyla arasına küçük bir boşluk bıraktık
+    ax = fig.add_axes([0.06, 0.24, 0.91, 0.61])
+    x = np.arange(n)
+    bars = ax.bar(x, fiyatlar, color=NAVY, width=0.55, zorder=3)
 
-    for spine in ax.spines.values():
-        spine.set_visible(True)
-        spine.set_edgecolor('#BBBBBB')
-        spine.set_linewidth(1.2)
+    for bar, val in zip(bars, fiyatlar):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 5,
+            f"{val:,.0f}" if val > 0 else "0",
+            ha="center", va="bottom", fontsize=6, color=NAVY, fontweight="bold"
+        )
 
-    ax.set_xticks(range(len(saat_araliklari)))
-    ax.set_xticklabels(saat_araliklari, rotation=45, ha="right", fontsize=9)
-    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: "{:,.0f}".format(x)))
-    ax.grid(axis="y", linestyle="--", alpha=0.3)
+    ax.set_xticks(x)
+    ax.set_xticklabels([])
+    ax.set_xlim(-0.5, n - 0.5)
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: "{:,.0f}".format(v)))
+    ax.tick_params(axis="y", labelsize=7)
+    ax.set_ylim(0, max(fiyatlar) * 1.2)
+    ax.grid(axis="y", linestyle="--", alpha=0.3, zorder=0)
 
-    fig.text(0.98, 0.92, "ALPİNE", fontsize=13, fontweight="black", color=BRIGHT_NAVY, ha="right")
-    fig.text(0.98, 0.85, "ENERJİ", fontsize=13, fontweight="black", color=BRIGHT_NAVY, ha="right")
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+    for spine in ["left", "bottom"]:
+        ax.spines[spine].set_edgecolor("#BBBBBB")
 
-    plt.title(f"EPİAŞ Kesinleşmemiş PFT - {tarih_fmt}", fontsize=13, fontweight="bold", color="#222", pad=35)
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    # Başlık ve Logo
+    fig.text(0.5, 0.94, f"EPİAŞ Kesinleşmemiş Piyasa Takas Fiyatı (PTF) — {tarih_fmt}",
+             ha="center", fontsize=10, fontweight="bold", color="#222")
+    fig.text(0.97, 0.94, "ALPİNE", fontsize=8, fontweight="black", color=BRIGHT_NAVY, ha="right")
+    fig.text(0.97, 0.90, "ENERJİ", fontsize=8, fontweight="black", color=BRIGHT_NAVY, ha="right")
+
+    # ── TABLO ALANI ──
+    # Tabloyu grafikten bağımsız olarak 0.04 - 0.19 arasına yerleştirdik (arada 0.05 birimlik boşluk var)
+    ax_t = fig.add_axes([0.06, 0.04, 0.91, 0.15])
+    ax_t.set_axis_off()
+
+    tbl = ax_t.table(
+        cellText=[[f"{v:,.2f}" for v in fiyatlar]],
+        rowLabels=["PTF (TL/MWh)"],
+        colLabels=saat_araliklari,
+        cellLoc="center",
+        loc="center"
+    )
+    tbl.auto_set_font_size(False)
+    tbl.set_fontsize(5.5)  # Okunabilirliği korumak için ideal punto
+
+    for (ri, ci), cell in tbl.get_celld().items():
+        cell.set_linewidth(0.4)
+        cell.set_edgecolor("#BBBBBB")
+        if ri == 0:  # Saat satırı
+            cell.set_facecolor(NAVY)
+            cell.set_text_props(color="white", fontweight="bold", fontsize=5.5)
+            cell.set_height(0.55)  # İki satırlı saat metni sığsın diye yüksekliği artırıldı
+        elif ci == -1:  # Sol etiket
+            cell.set_facecolor(NAVY)
+            cell.set_text_props(color="white", fontweight="bold", fontsize=6)
+            cell.set_height(0.45)
+        else:  # Fiyat satırı
+            cell.set_facecolor("#EFF4FB" if ci % 2 == 0 else "#FFFFFF")
+            cell.set_text_props(color=NAVY, fontweight="bold")
+            cell.set_height(0.45)
 
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=110, bbox_inches="tight")
+    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
     plt.close(fig)
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
-# ─────────────────────────────────────────────
-#  XLSX OLUŞTUR (ORİJİNAL TASARIMIN)
-# ─────────────────────────────────────────────
 def xlsx_olustur(veri: list, tarih: str) -> bytes:
     tarih_fmt = datetime.strptime(tarih, "%Y-%m-%d").strftime("%d.%m.%Y")
     NAVY_HEX = "201F5A"
@@ -145,7 +194,7 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
 
     header_fill = PatternFill("solid", start_color=NAVY_HEX, end_color=NAVY_HEX)
     header_font = Font(bold=True, color="FFFFFF", name="Arial", size=11)
-    wrap_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    wrap_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
     center_align = Alignment(horizontal="center", vertical="center")
     thin_border = Border(
         left=Side(style="thin", color="CCCCCC"), right=Side(style="thin", color="CCCCCC"),
@@ -154,7 +203,7 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "PFT Verileri"
+    ws.title = "PTF Verileri"
 
     for col, w in zip("ABC", [15, 20, 20]):
         ws.column_dimensions[col].width = w
@@ -164,47 +213,60 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     ws["A1"] = "ALPİNE ENERJİ"
     ws["A1"].font = Font(name="Arial", size=14, bold=True, color=NAVY_HEX)
     ws["A1"].alignment = center_align
-
-    ws["C1"] = f"EPİAŞ Kesinleşmemiş PFT - {tarih_fmt}"
+    ws["C1"] = f"EPİAŞ Kesinleşmemiş PTF - {tarih_fmt}"
     ws["C1"].font = Font(name="Arial", size=11, bold=True, color=NAVY_HEX)
-    ws["C1"].alignment = wrap_alignment
+    ws["C1"].alignment = wrap_align
 
     ws.row_dimensions[4].height = 22
-    for col_idx, h in enumerate(["Tarih", "Saat Aralığı", "PFT (TL/MWh)"], start=1):
-        c = ws.cell(row=4, column=col_idx, value=h)
-        c.font = header_font; c.fill = header_fill; c.alignment = center_align; c.border = thin_border
+    for ci, h in enumerate(["Tarih", "Saat Aralığı", "PTF (TL/MWh)"], start=1):
+        c = ws.cell(row=4, column=ci, value=h)
+        c.font = header_font;
+        c.fill = header_fill;
+        c.alignment = center_align;
+        c.border = thin_border
 
     for i, row in enumerate(veri, start=5):
         fiyat = float(row["fiyat"])
         bg = "EFF4FB" if i % 2 == 0 else "FFFFFF"
         rf = PatternFill("solid", start_color=bg, end_color=bg)
-        bold_font = Font(name="Arial", size=10, bold=True, color="000000")
-        normal_font = Font(name="Arial", size=10, color="000000")
-
-        c = ws.cell(row=i, column=1, value=tarih_fmt); c.font = normal_font; c.alignment = center_align; c.fill = rf; c.border = thin_border
-        c = ws.cell(row=i, column=2, value=row["saat"]); c.font = bold_font; c.alignment = center_align; c.fill = rf; c.border = thin_border
-        c = ws.cell(row=i, column=3, value=fiyat); c.font = bold_font; c.number_format = '#,##0.00'; c.alignment = center_align; c.fill = rf; c.border = thin_border
+        bf = Font(name="Arial", size=10, bold=True, color="000000")
+        nf = Font(name="Arial", size=10, color="000000")
+        c = ws.cell(row=i, column=1, value=tarih_fmt);
+        c.font = nf;
+        c.alignment = center_align;
+        c.fill = rf;
+        c.border = thin_border
+        c = ws.cell(row=i, column=2, value=row["saat"]);
+        c.font = bf;
+        c.alignment = center_align;
+        c.fill = rf;
+        c.border = thin_border
+        c = ws.cell(row=i, column=3, value=fiyat);
+        c.font = bf;
+        c.number_format = '#,##0.00';
+        c.alignment = center_align;
+        c.fill = rf;
+        c.border = thin_border
 
     saatler = [r["saat_no"] + ":00" for r in veri]
     fiyatlar = [float(r["fiyat"]) for r in veri]
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.bar(range(len(saatler)), fiyatlar, color=NAVY_GRAPHIC, width=0.7)
-    ax.set_xticks(range(len(saatler)))
-    ax.set_xticklabels(saatler, rotation=45, ha="right", fontsize=8)
-    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: "{:,.0f}".format(x)))
-    ax.grid(axis="y", linestyle="--", alpha=0.3)
-    fig.text(0.95, 0.92, "ALPİNE", fontsize=11, fontweight="black", color=NAVY_GRAPHIC, ha="right", va="top")
-    fig.text(0.95, 0.86, "ENERJİ", fontsize=11, fontweight="black", color=NAVY_GRAPHIC, ha="right", va="top")
-    plt.title(f"EPİAŞ Kesinleşmemiş PFT - {tarih_fmt}", fontsize=11, loc='center', color="#222222", fontweight="bold", pad=25)
+    fig2, ax2 = plt.subplots(figsize=(8, 4))
+    ax2.bar(range(len(saatler)), fiyatlar, color=NAVY_GRAPHIC, width=0.7)
+    ax2.set_xticks(range(len(saatler)))
+    ax2.set_xticklabels(saatler, rotation=45, ha="right", fontsize=8)
+    ax2.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: "{:,.0f}".format(x)))
+    ax2.grid(axis="y", linestyle="--", alpha=0.3)
+    fig2.text(0.95, 0.92, "ALPİNE", fontsize=11, fontweight="black", color=NAVY_GRAPHIC, ha="right", va="top")
+    fig2.text(0.95, 0.86, "ENERJİ", fontsize=11, fontweight="black", color=NAVY_GRAPHIC, ha="right", va="top")
+    plt.title(f"EPİAŞ Kesinleşmemiş PTF - {tarih_fmt}", fontsize=11, color="#222222", fontweight="bold", pad=25)
     plt.tight_layout(rect=[0, 0, 0.9, 0.95])
-
-    img_buf = io.BytesIO()
-    fig.savefig(img_buf, format="png", dpi=100, bbox_inches="tight")
-    plt.close(fig)
-    img_buf.seek(0)
+    ibuf = io.BytesIO()
+    fig2.savefig(ibuf, format="png", dpi=100, bbox_inches="tight")
+    plt.close(fig2)
+    ibuf.seek(0)
 
     from openpyxl.drawing.image import Image as XLImage
-    xl_img = XLImage(img_buf)
+    xl_img = XLImage(ibuf)
     xl_img.anchor = "E5"
     ws.add_image(xl_img)
 
@@ -213,85 +275,90 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     buf.seek(0)
     return buf.read()
 
-# ─────────────────────────────────────────────
-#  HTML MAIL (ORİJİNAL YATAY TASARIMIN)
-# ─────────────────────────────────────────────
 def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) -> str:
     tarih_fmt = datetime.strptime(tarih, "%Y-%m-%d").strftime("%d.%m.%Y")
     NAVY = "#201F5A"
 
-    def format_aralik(s_no):
-        try: h = int(s_no.split(":")[0])
-        except: h = int(s_no)
-        return f"{h:02d}:00-{(h+1)%24:02d}:00"
-
-    th_cells = "".join(f"<th style='padding:10px 4px; background:{NAVY}; color:#fff; font-size:10px; border:1px solid #ddd; min-width:95px;'>{format_aralik(r['saat_no'])}</th>" for r in veri)
-    td_cells = "".join(f"<td style='padding:12px 4px; font-size:13px; text-align:center; font-weight:bold; border:1px solid #ddd; color:{NAVY};'>{float(r['fiyat']):.2f}</td>" for r in veri)
-
-    return f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; color: #222; margin:0; padding:0;">
-      <table width="100%" style="border-collapse:collapse; background:{NAVY}; color:#fff;">
-        <tr><td style="padding:25px;"><div style="font-size:24px; font-weight:bold;">ALPİNE ENERJİ</div><div style="font-size:14px; color:#4EB2D2; margin-top:5px;">{tarih_fmt} Tarihine Ait Kesinleşmemiş PFT</div></td></tr>
+    return f"""<!DOCTYPE html>
+<html lang="tr">
+<body style="margin:0; padding:0; font-family:Arial,sans-serif; color:#222; background:#f4f6fb;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;">
+    <tr><td align="center" style="padding:24px 8px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px; background:#fff; border-radius:8px;">
+        <tr>
+          <td style="background:{NAVY}; padding:20px 30px; border-radius:8px 8px 0 0;">
+            <div style="font-size:22px; font-weight:900; color:#fff;">ALPİNE ENERJİ</div>
+            <div style="font-size:13px; color:#4EB2D2; margin-top:5px;">
+              {tarih_fmt} Tarihine Ait Kesinleşmemiş Piyasa Takas Fiyatı (PTF)
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:25px 30px;">
+            <p style="font-size:15px;">Sayın <b>{musteri_ad}</b>,</p>
+            <p style="font-size:15px;">
+              {tarih_fmt} tarihine ait <b>Kesinleşmemiş Piyasa Takas Fiyatı (PTF)</b> verileri aşağıda yer almaktadır.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:0 30px;">
+            <img src="data:image/png;base64,{grafik_b64}" style="width:100%; max-width:700px; height:auto; display:block; border:1px solid #eee;" />
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 30px;">
+            <p style="font-size:12px; color:#666; border-top:1px solid #eee; padding-top:10px; font-weight:bold;">
+              Kaynak: EPİAŞ Şeffaflık Platformu
+            </p>
+          </td>
+        </tr>
       </table>
-      <div style="padding:30px; border:1px solid #ddd; border-top:none;">
-        <p style="font-size:15px;">Sayın <b>{musteri_ad}</b>,</p>
-        <p style="font-size:15px;">{tarih_fmt} tarihine ait <b>kesinleşmemiş Piyasa Fiyatı Tahmini (PFT)</b> verileri aşağıda yer almaktadır.</p>
-        <div style="margin:25px 0; width:1300px;"><img src="data:image/png;base64,{grafik_b64}" style="width:1300px; display:block; border-radius:4px;" /></div>
-        <div style="overflow-x:auto;"><table style="border-collapse:collapse; width:1300px; table-layout: fixed; border:1px solid #ddd;">
-            <thead><tr><th style="padding:12px; background:{NAVY}; color:#fff; font-size:11px; border:1px solid #ddd; text-align:left; width:140px;">Saat Aralığı</th>{th_cells}</tr></thead>
-            <tbody><tr><td style="padding:12px; background:{NAVY}; color:#fff; font-size:11px; border:1px solid #ddd; font-weight:bold;">PFT (TL/MWh)</td>{td_cells}</tr></tbody>
-        </table></div>
-        <p style="font-size:12px; color:#666; margin-top:35px; border-top:1px solid #eee; padding-top:15px;">⚠️ Bu veriler <u>kesinleşmemiş</u> olup değişiklik gösterebilir. Detaylı analizler ekteki Excel dosyasındadır.</p>
-      </div>
-    </body>
-    </html>
-    """
+    </td></tr>
+  </table>
+</body>
+</html>"""
 
-# ─────────────────────────────────────────────
-#  MAIL GÖNDER & ANA AKIŞ
-# ─────────────────────────────────────────────
 def mail_gonder(musteri: dict, veri: list, tarih: str, xlsx_bytes: bytes, grafik_b64: str):
     msg = MIMEMultipart("mixed")
     tarih_fmt = datetime.strptime(tarih, "%Y-%m-%d").strftime("%d.%m.%Y")
-    msg["Subject"] = f"EPİAŞ Kesinleşmemiş PFT — {tarih_fmt}"
+    msg["Subject"] = f"EPİAŞ Kesinleşmemiş Piyasa Takas Fiyatı (PTF) — {tarih_fmt}"
     msg["From"] = OUTLOOK_MAIL
     msg["To"] = musteri["email"]
-    
-    # 1. BCC Başlığını ekle (Alıcı bunu görmez)
-    GIZLI_KONTROL_MAIL = "beyzayn1168@gmail.com"
-    msg["Bcc"] = GIZLI_KONTROL_MAIL
-
     msg.attach(MIMEText(html_mail_olustur(musteri["ad"], veri, tarih, grafik_b64), "html", "utf-8"))
-    
     ek = MIMEBase("application", "vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    ek.set_payload(xlsx_bytes); encoders.encode_base64(ek)
-    ek.add_header("Content-Disposition", f'attachment; filename="PFT_{tarih}.xlsx"')
+    ek.set_payload(xlsx_bytes);
+    encoders.encode_base64(ek)
+    ek.add_header("Content-Disposition", f'attachment; filename="PTF_{tarih}.xlsx"')
     msg.attach(ek)
-
-    # 2. Gönderim listesine hem asıl alıcıyı hem BCC'yi ekle
-    # smtplib'in maili her iki adrese de iletmesi için bu şarttır.
-    tum_alicilar = [musteri["email"], GIZLI_KONTROL_MAIL]
-
     with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
         server.starttls()
         server.login(OUTLOOK_MAIL, OUTLOOK_PASS)
-        # 3. İkinci parametrede tüm listeyi veriyoruz
-        server.sendmail(OUTLOOK_MAIL, tum_alicilar, msg.as_string())
-
+        server.sendmail(OUTLOOK_MAIL, [musteri["email"]], msg.as_string())
 
 
 def main():
     log.info("=" * 55)
     try:
-        veri, tarih = pft_veri_cek()
+        veri, tarih = ptf_veri_cek()
+
+        # Eğer veri None geldiyse, yayınlanmamış demektir. Programı burada durduruyoruz.
+        # main() içerisindeki ilgili satırı bu şekilde güncelleyebilirsin:
+        if veri is None:
+            log.info("Süreç durduruldu: Yarının PTF verisi henüz yayınlanmadığı için mail gönderilmedi.")
+            return
+        
+        # Veri varsa normal akış devam eder:
         xlsx_bytes = xlsx_olustur(veri, tarih)
         grafik_b64 = grafik_olustur(veri, tarih)
+
         for musteri in MUSTERI_LISTESI:
             mail_gonder(musteri, veri, tarih, xlsx_bytes, grafik_b64)
             log.info(f"✓ Mail gönderildi → {musteri['email']}")
+
     except Exception as e:
-        log.error(f"HATA: {e}"); raise
+        log.error(f"Süreç sırasında HATA oluştu: {e}")
+        raise
 
 if __name__ == "__main__":
     main()
