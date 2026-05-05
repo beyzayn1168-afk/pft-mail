@@ -160,7 +160,7 @@ def grafik_olustur(veri: list, tarih: str) -> str:
 
     # Başlık
     fig.text(0.5, 0.94, f"EPİAŞ Kesinleşmemiş Piyasa Takas Fiyatı (PTF) — {tarih_fmt}",
-             ha="center", fontsize=10, fontweight="bold", color="#222")
+             ha="center", fontsize=10, fontweight="bold", color="#201F5A")
 
     # ── LOGO (sağ üst köşe) ──
     try:
@@ -277,7 +277,7 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     ax2.set_xticklabels(saatler, rotation=45, ha="right", fontsize=8)
     ax2.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: "{:,.0f}".format(x)))
     ax2.grid(axis="y", linestyle="--", alpha=0.3)
-    plt.title(f"EPİAŞ Kesinleşmemiş PTF - {tarih_fmt}", fontsize=11, color="#222222", fontweight="bold", pad=25)
+    plt.title(f"EPİAŞ Kesinleşmemiş PTF - {tarih_fmt}", fontsize=11,color="#201F5A", fontweight="bold", pad=25)
 
     try:
         logo_img2 = imread(LOGO_PATH_PNG)
@@ -337,10 +337,10 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
 
         <tr>
           <td style="padding:25px 30px;">
-                <p style="font-size:12pt; font-family:'Times New Roman',serif; color:#201F5A; text-align:right;">Sayın <b>{musteri_ad}</b>,</p>
-    <p style="font-size:12pt; font-family:'Times New Roman',serif; color:#201F5A; text-align:right;">
-      {tarih_fmt} tarihine ait <b>Kesinleşmemiş Piyasa Takas Fiyatı (PTF)</b> verileri aşağıda yer almaktadır.
-    </p>
+           <p style="font-size:15px; color:#201F5A;">Sayın <b>{musteri_ad}</b>,</p>
+            <p style="font-size:15px; color:#201F5A;">
+              {tarih_fmt} tarihine ait <b>Kesinleşmemiş Piyasa Takas Fiyatı (PTF)</b> verileri aşağıda yer almaktadır.
+            </p>
           </td>
         </tr>
 
