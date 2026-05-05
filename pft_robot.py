@@ -131,7 +131,7 @@ def grafik_olustur(veri: list, tarih: str) -> str:
     fig = plt.figure(figsize=(12, 7))
     fig.patch.set_facecolor("white")
 
-    ax = fig.add_axes([0.06, 0.35, 0.91, 0.55])
+    ax_t = fig.add_axes([0.06, 0.01, 0.91, 0.24])
     x = np.arange(n)
     bars = ax.bar(x, fiyatlar, color=NAVY, width=0.55, zorder=3)
     for bar, val in zip(bars, fiyatlar):
@@ -164,7 +164,7 @@ def grafik_olustur(veri: list, tarih: str) -> str:
     except Exception as e:
         log.warning(f"Logo yüklenemedi (grafik): {e}")
 
-    ax_t = fig.add_axes([0.06, 0.01, 0.91, 0.22])
+    ax_t = fig.add_axes([0.06, 0.01, 0.91, 0.26])
     ax_t.set_axis_off()
     tbl = ax_t.table(
         cellText=[
