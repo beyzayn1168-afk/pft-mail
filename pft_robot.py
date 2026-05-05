@@ -223,6 +223,14 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     ws.column_dimensions["B"].width = 20
     ws.column_dimensions["C"].width = 15
     ws.merge_cells("B1:C1")
+    header_border = Border(
+    left=Side(style="medium", color="201F5A"),
+    right=Side(style="medium", color="201F5A"),
+    top=Side(style="medium", color="201F5A"),
+    bottom=Side(style="medium", color="201F5A")
+)
+for col in ["A", "B", "C"]:
+    ws[f"{col}1"].border = header_border
     
     try:
         from openpyxl.drawing.image import Image as XLImage
