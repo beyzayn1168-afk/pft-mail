@@ -218,7 +218,7 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     for col, w in zip("ABC", [15, 20, 20]):
         ws.column_dimensions[col].width = w
 
-    ws.row_dimensions[1].height = 50
+    ws.row_dimensions[1].height = 48
     ws.column_dimensions["A"].width = 20
     ws.column_dimensions["B"].width = 20
     ws.column_dimensions["C"].width = 15
@@ -227,8 +227,8 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     try:
         from openpyxl.drawing.image import Image as XLImage
         xl_logo = XLImage(LOGO_PATH_JPG)
-        xl_logo.width  = 150
-        xl_logo.height = 65
+        xl_logo.width  = 145
+        xl_logo.height = 60
         xl_logo.anchor = "A1"
         ws.add_image(xl_logo)
     except Exception as e:
