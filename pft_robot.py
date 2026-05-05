@@ -126,13 +126,11 @@ def grafik_olustur(veri: list, tarih: str) -> str:
     saat_araliklari = [fmt_iki_satir_saat(r["saat_no"]) for r in veri]
     fiyatlar = [float(r["fiyat"]) for r in veri]
     tarih_fmt = datetime.strptime(tarih, "%Y-%m-%d").strftime("%d.%m.%Y")
-
     NAVY = "#201F5A"
 
-fig = plt.figure(figsize=(12, 7))
+    fig = plt.figure(figsize=(12, 7))
     fig.patch.set_facecolor("white")
 
-    # ── GRAFİK ALANI ──
     ax = fig.add_axes([0.06, 0.35, 0.91, 0.55])
     x = np.arange(n)
     bars = ax.bar(x, fiyatlar, color=NAVY, width=0.55, zorder=3)
@@ -155,11 +153,9 @@ fig = plt.figure(figsize=(12, 7))
     for spine in ["left", "bottom"]:
         ax.spines[spine].set_edgecolor("#BBBBBB")
 
-    # Başlık
     fig.text(0.5, 0.94, f"EPİAŞ Kesinleşmemiş Piyasa Takas Fiyatı (PTF) — {tarih_fmt}",
              ha="center", fontsize=10, fontweight="bold", color="#201F5A")
 
-    # ── LOGO ──
     try:
         logo_img = imread(LOGO_PATH_PNG)
         logo_ax = fig.add_axes([0.82, 0.88, 0.14, 0.10])
@@ -168,7 +164,6 @@ fig = plt.figure(figsize=(12, 7))
     except Exception as e:
         log.warning(f"Logo yüklenemedi (grafik): {e}")
 
-    # ── TABLO ALANI ──
     ax_t = fig.add_axes([0.06, 0.01, 0.91, 0.28])
     ax_t.set_axis_off()
     tbl = ax_t.table(
@@ -197,6 +192,7 @@ fig = plt.figure(figsize=(12, 7))
             cell.set_facecolor("#EFF4FB" if ci % 2 == 0 else "#FFFFFF")
             cell.set_text_props(color=NAVY, fontweight="bold")
             cell.set_height(0.45)
+
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
     plt.close(fig)
