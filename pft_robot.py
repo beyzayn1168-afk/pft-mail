@@ -130,7 +130,7 @@ def grafik_olustur(veri: list, tarih: str) -> str:
     fig = plt.figure(figsize=(12, 7))
     fig.patch.set_facecolor("white")
 
-    ax = fig.add_axes([0.06, 0.28, 0.91, 0.55])
+    ax = fig.add_axes([0.06, 0.32, 0.91, 0.50])
     x = np.arange(n)
     bars = ax.bar(x, fiyatlar, color=NAVY, width=0.55, zorder=3)
     for bar, val in zip(bars, fiyatlar):
