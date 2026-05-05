@@ -178,7 +178,7 @@ def grafik_olustur(veri: list, tarih: str) -> str:
     ax_t.set_axis_off()
 
     tbl = ax_t.table(
-        cellText=[[f"{v:,.2f}" for v in fiyatlar]],
+        cellText=[[f"{v:,.0f}" for v in fiyatlar]],
         rowLabels=["PTF (TL/MWh)"],
         colLabels=saat_araliklari,
         cellLoc="center",
