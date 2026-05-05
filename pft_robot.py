@@ -230,7 +230,7 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     for col, w in zip("ABC", [15, 20, 20]):
         ws.column_dimensions[col].width = w
 
-    ws.row_dimensions[1].height = 38
+    ws.row_dimensions[1].height = 50
     ws.column_dimensions["A"].width = 20
     ws.column_dimensions["B"].width = 20
     ws.column_dimensions["C"].width = 15
@@ -239,8 +239,8 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     try:
         from openpyxl.drawing.image import Image as XLImage
         xl_logo = XLImage(LOGO_PATH_JPG)
-        xl_logo.width  = 100
-        xl_logo.height = 40
+        xl_logo.width  = 120
+        xl_logo.height = 50
         xl_logo.anchor = "A1"
         ws.add_image(xl_logo)
     except Exception as e:
@@ -326,7 +326,7 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
                         </td>
                      <td style="vertical-align:middle; text-align:right; width:120px;">
                       <img src="{LOGO_MAIL_SRC}"
-                           width="120" height="45"
+                           width="140" height="50"
                            style="display:block; margin-left:auto;"
                            alt="Alpine Enerji" />
                     </td>
