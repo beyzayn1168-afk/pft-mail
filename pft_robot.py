@@ -326,7 +326,7 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
                         </td>
                      <td style="vertical-align:middle; text-align:right; width:120px;">
                       <img src="{LOGO_MAIL_SRC}"
-                           width="110" height="38"
+                           width="120" height="45"
                            style="display:block; margin-left:auto;"
                            alt="Alpine Enerji" />
                     </td>
