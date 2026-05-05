@@ -26,6 +26,12 @@ import os
 
 LOGO_PATH_JPG = "Alpine-enerji.jpg"
 LOGO_PATH_PNG = "Alpine-enerji.png"
+LOGO_PATH_BEYAZ = "Alpine-enerji-beyaz.png"  # ← bunu ekle
+
+# Mail header için beyaz logo
+with open(LOGO_PATH_BEYAZ, "rb") as f:
+    LOGO_BEYAZ_B64 = base64.b64encode(f.read()).decode("utf-8")
+LOGO_MAIL_SRC = f"data:image/png;base64,{LOGO_BEYAZ_B64}"
 
 # Logo varsa yükle, yoksa boş bırak
 if os.path.exists(LOGO_PATH_JPG):
@@ -319,11 +325,11 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
                   <div style="font-size:14px; font-weight:900; color:#fff; line-height:1.3;">Kesinleşmemiş Piyasa Takas Fiyatı (PTF)</div>
                   <div style="font-size:12px; color:#4EB2D2; margin-top:4px;">{tarih_fmt} Tarihine Ait</div>
                         </td>
-                        <td style="vertical-align:middle; text-align:right; width:160px;">
-          <img src="{LOGO_MAIL_SRC}"
-               style="height:45px; width:auto; display:block; margin-left:auto;"
-               alt="Alpine Enerji" />
-        </td>
+                        <td style="vertical-align:middle; text-align:right; width:130px;">
+  <img src="{LOGO_MAIL_SRC}"
+       style="height:55px; width:auto; display:block; margin-left:auto;"
+       alt="Alpine Enerji" />
+</td>
               </tr>
             </table>
           </td>
