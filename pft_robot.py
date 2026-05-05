@@ -1,4 +1,3 @@
-Python
 
 import smtplib
 import logging
