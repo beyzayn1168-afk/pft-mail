@@ -324,12 +324,12 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
                   <div style="font-size:14px; font-weight:900; color:#fff; line-height:1.3;">Kesinleşmemiş Piyasa Takas Fiyatı (PTF)</div>
                   <div style="font-size:12px; color:#4EB2D2; margin-top:4px;">{tarih_fmt} Tarihine Ait</div>
                         </td>
-                                   <td style="vertical-align:middle; text-align:right; width:90px;">
-  <img src="{LOGO_MAIL_SRC}"
-       width="80" height="28"
-       style="display:block; margin-left:auto;"
-       alt="Alpine Enerji" />
-</td>
+                     <td style="vertical-align:middle; text-align:right; width:120px;">
+                      <img src="{LOGO_MAIL_SRC}"
+                           width="110" height="38"
+                           style="display:block; margin-left:auto;"
+                           alt="Alpine Enerji" />
+                    </td>
               </tr>
             </table>
           </td>
@@ -337,10 +337,10 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
 
         <tr>
           <td style="padding:25px 30px;">
-            <p style="font-size:15px;">Sayın <b>{musteri_ad}</b>,</p>
-            <p style="font-size:15px;">
-              {tarih_fmt} tarihine ait <b>Kesinleşmemiş Piyasa Takas Fiyatı (PTF)</b> verileri aşağıda yer almaktadır.
-            </p>
+                <p style="font-size:12pt; font-family:'Times New Roman',serif; color:#201F5A; text-align:right;">Sayın <b>{musteri_ad}</b>,</p>
+    <p style="font-size:12pt; font-family:'Times New Roman',serif; color:#201F5A; text-align:right;">
+      {tarih_fmt} tarihine ait <b>Kesinleşmemiş Piyasa Takas Fiyatı (PTF)</b> verileri aşağıda yer almaktadır.
+    </p>
           </td>
         </tr>
 
