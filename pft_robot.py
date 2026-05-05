@@ -239,8 +239,8 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     try:
         from openpyxl.drawing.image import Image as XLImage
         xl_logo = XLImage(LOGO_PATH_JPG)
-        xl_logo.width  = 120
-        xl_logo.height = 50
+        xl_logo.width  = 150
+        xl_logo.height = 65
         xl_logo.anchor = "A1"
         ws.add_image(xl_logo)
     except Exception as e:
@@ -263,7 +263,7 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
         bg = "EFF4FB" if i % 2 == 0 else "FFFFFF"
         rf = PatternFill("solid", start_color=bg, end_color=bg)
         bf = Font(name="Arial", size=10, bold=True, color="000000")
-        nf = Font(name="Arial", size=10, color="000000")
+        nf = Font(name="Arial", size=10, bold=True, color="000000")
         c = ws.cell(row=i, column=1, value=tarih_fmt);   c.font=nf; c.alignment=center_align; c.fill=rf; c.border=thin_border
         c = ws.cell(row=i, column=2, value=row["saat"]); c.font=bf; c.alignment=center_align; c.fill=rf; c.border=thin_border
         c = ws.cell(row=i, column=3, value=fiyat);       c.font=bf; c.number_format='#,##0.00'; c.alignment=center_align; c.fill=rf; c.border=thin_border
@@ -326,7 +326,7 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
                         </td>
                      <td style="vertical-align:middle; text-align:right; width:120px;">
                       <img src="{LOGO_MAIL_SRC}"
-                           width="140" height="50"
+                           width="150" height="65"
                            style="display:block; margin-left:auto;"
                            alt="Alpine Enerji" />
                     </td>
@@ -353,9 +353,9 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
 
         <tr>
           <td style="padding:20px 30px;">
-            <p style="font-size:12px; color:#666; border-top:1px solid #eee; padding-top:10px; font-weight:bold;">
+             <p style="font-size:14px; color:#666; border-top:1px solid #eee; padding-top:10px; font-weight:bold; text-align:center;">
               Kaynak: EPİAŞ Şeffaflık Platformu
-            </p>
+              </p>
           </td>
         </tr>
 
