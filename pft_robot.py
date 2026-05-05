@@ -316,9 +316,8 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;">
     <tr><td align="center" style="padding:24px 8px;">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px; background:#fff; border-radius:8px;">
-
         <tr>
-          <td style="background:#000000; padding:12px 24px; border-radius:8px 8px 0 0;">
+         <td style="background:#201F5A; padding:16px 30px; border-radius:8px 8px 0 0;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="vertical-align:middle; text-align:left;">
