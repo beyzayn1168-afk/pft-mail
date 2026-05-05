@@ -233,8 +233,8 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     try:
         from openpyxl.drawing.image import Image as XLImage
         xl_logo = XLImage(LOGO_PATH_JPG)
-        xl_logo.width  = 130
-        xl_logo.height = 35
+        xl_logo.width  = 100
+        xl_logo.height = 40
         xl_logo.anchor = "A1"
         ws.add_image(xl_logo)
     except Exception as e:
@@ -318,12 +318,12 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
                 <td style="vertical-align:middle; text-align:left;">
                   <div style="font-size:14px; font-weight:900; color:#fff; line-height:1.3;">Kesinleşmemiş Piyasa Takas Fiyatı (PTF)</div>
                   <div style="font-size:12px; color:#4EB2D2; margin-top:4px;">{tarih_fmt} Tarihine Ait</div>
-                </td>
-                <td style="vertical-align:middle; text-align:right; width:120px;">
-                 <img src="{LOGO_MAIL_SRC}"
-                     style="height:35px; height:auto; display:block; margin-left:auto;"
-                     alt="Alpine Enerji" /
-                </td>
+                        </td>
+                        <td style="vertical-align:middle; text-align:right; width:120px;">
+          <img src="{LOGO_MAIL_SRC}"
+               style="height:35px; width:auto; display:block; margin-left:auto;"
+               alt="Alpine Enerji" />
+        </td>
               </tr>
             </table>
           </td>
