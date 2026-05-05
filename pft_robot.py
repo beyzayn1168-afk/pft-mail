@@ -183,15 +183,15 @@ def grafik_olustur(veri: list, tarih: str) -> str:
         if ci == -1:
             cell.set_facecolor(NAVY)
             cell.set_text_props(color="white", fontweight="bold", fontsize=7)
-            cell.set_height(0.45)
+            cell.set_height(0.25)
         elif ri == 1:
             cell.set_facecolor(NAVY)
             cell.set_text_props(color="white", fontweight="bold", fontsize=7)
-            cell.set_height(0.45)
+            cell.set_height(0.25)
         else:
             cell.set_facecolor("#EFF4FB" if ci % 2 == 0 else "#FFFFFF")
             cell.set_text_props(color=NAVY, fontweight="bold")
-            cell.set_height(0.45)
+            cell.set_height(0.25)
 
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
