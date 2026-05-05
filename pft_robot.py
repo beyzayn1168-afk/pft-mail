@@ -327,7 +327,7 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
                   <div style="font-size:12px; color:#4EB2D2; margin-top:4px;">{tarih_fmt} Tarihine Ait</div>
                         </td>
                            <td style="vertical-align:middle; text-align:right; width:130px;">
-      <img src="{LOGO_MAIL_BEYAZ_SRC}"
+      <img src="{LOGO_MAIL_SRC}"
            style="height:45px; width:auto; display:block; margin-left:auto;"
            alt="Alpine Enerji" />
 </td>
