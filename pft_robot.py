@@ -129,12 +129,47 @@ def grafik_olustur(veri: list, tarih: str) -> str:
 
     NAVY = "#201F5A"
 
-    fig = plt.figure(figsize=(12, 5))
+fig = plt.figure(figsize=(12, 7))
     fig.patch.set_facecolor("white")
 
     # ── GRAFİK ALANI ──
-   # ── TABLO ALANI ──
-    ax_t = fig.add_axes([0.06, 0.04, 0.91, 0.15])
+    ax = fig.add_axes([0.06, 0.35, 0.91, 0.55])
+    x = np.arange(n)
+    bars = ax.bar(x, fiyatlar, color=NAVY, width=0.55, zorder=3)
+    for bar, val in zip(bars, fiyatlar):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 5,
+            f"{val:,.0f}" if val > 0 else "0",
+            ha="center", va="bottom", fontsize=7.5, color=NAVY, fontweight="bold"
+        )
+    ax.set_xticks(x)
+    ax.set_xticklabels([])
+    ax.set_xlim(-0.5, n - 0.5)
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: "{:,.0f}".format(v)))
+    ax.tick_params(axis="y", labelsize=7)
+    ax.set_ylim(0, max(fiyatlar) * 1.2)
+    ax.grid(axis="y", linestyle="--", alpha=0.3, zorder=0)
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+    for spine in ["left", "bottom"]:
+        ax.spines[spine].set_edgecolor("#BBBBBB")
+
+    # Başlık
+    fig.text(0.5, 0.94, f"EPİAŞ Kesinleşmemiş Piyasa Takas Fiyatı (PTF) — {tarih_fmt}",
+             ha="center", fontsize=10, fontweight="bold", color="#201F5A")
+
+    # ── LOGO ──
+    try:
+        logo_img = imread(LOGO_PATH_PNG)
+        logo_ax = fig.add_axes([0.82, 0.88, 0.14, 0.10])
+        logo_ax.imshow(logo_img)
+        logo_ax.axis("off")
+    except Exception as e:
+        log.warning(f"Logo yüklenemedi (grafik): {e}")
+
+    # ── TABLO ALANI ──
+    ax_t = fig.add_axes([0.06, 0.01, 0.91, 0.28])
     ax_t.set_axis_off()
     tbl = ax_t.table(
         cellText=[
