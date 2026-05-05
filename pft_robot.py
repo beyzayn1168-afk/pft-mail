@@ -26,10 +26,10 @@ import os
 
 LOGO_PATH_JPG = "Alpine-enerji.jpg"
 LOGO_PATH_PNG = "Alpine-enerji.png"
-LOGO_PATH_BEYAZ = "Alpine-enerji-beyaz.png"  # ← bunu ekle
+LOGO_MAIL_BEYAZ_SRC = "Alpine-enerji-beyaz.png"  # ← bunu ekle
 
 # Mail header için beyaz logo
-with open(LOGO_PATH_BEYAZ, "rb") as f:
+with open(LOGO_MAIL_BEYAZ_SRC, "rb") as f:
     LOGO_BEYAZ_B64 = base64.b64encode(f.read()).decode("utf-8")
 LOGO_MAIL_SRC = f"data:image/png;base64,{LOGO_BEYAZ_B64}"
 
