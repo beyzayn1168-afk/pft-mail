@@ -164,7 +164,7 @@ def grafik_olustur(veri: list, tarih: str) -> str:
     except Exception as e:
         log.warning(f"Logo yüklenemedi (grafik): {e}")
 
-    ax_t = fig.add_axes([0.06, 0.01, 0.91, 0.28])
+    ax_t = fig.add_axes([0.06, 0.08, 0.91, 0.22])
     ax_t.set_axis_off()
     tbl = ax_t.table(
         cellText=[
