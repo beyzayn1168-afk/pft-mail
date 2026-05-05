@@ -35,9 +35,8 @@ if os.path.exists(LOGO_PATH_JPG):
 else:
     LOGO_B64 = ""
 
-# Kodun başında — beyaz logo yerine renkli PNG kullan
-if os.path.exists(LOGO_PATH_PNG):
-    with open(LOGO_PATH_PNG, "rb") as f:
+if os.path.exists(LOGO_PATH_BEYAZ):
+    with open(LOGO_PATH_BEYAZ, "rb") as f:
         LOGO_BEYAZ_B64 = base64.b64encode(f.read()).decode("utf-8")
     LOGO_MAIL_SRC = f"data:image/png;base64,{LOGO_BEYAZ_B64}"
 else:
@@ -319,18 +318,18 @@ def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) 
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:800px; background:#fff; border-radius:8px;">
 
         <tr>
-          <td style="background:#201F5A; padding:12px 24px; border-radius:8px 8px 0 0;">
+          <td style="background:#000000; padding:12px 24px; border-radius:8px 8px 0 0;">
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="vertical-align:middle; text-align:left;">
                   <div style="font-size:14px; font-weight:900; color:#fff; line-height:1.3;">Kesinleşmemiş Piyasa Takas Fiyatı (PTF)</div>
                   <div style="font-size:12px; color:#4EB2D2; margin-top:4px;">{tarih_fmt} Tarihine Ait</div>
                         </td>
-                           <td style="vertical-align:middle; text-align:right; width:80px;">
-                  <img src="{LOGO_MAIL_SRC}"
-                       style="height:12 px; width:auto; display:block; margin-left:auto;"
-                       alt="Alpine Enerji" />
-                </td>
+                                   <td style="vertical-align:middle; text-align:right; width:90px;">
+          <img src="{LOGO_MAIL_SRC}"
+               style="max-width:80px; max-height:28px; width:auto; height:auto; display:block; margin-left:auto;"
+               alt="Alpine Enerji" />
+        </td>
               </tr>
             </table>
           </td>
