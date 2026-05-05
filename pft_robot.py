@@ -78,7 +78,7 @@ def saat_aralik(saat_no: str) -> str:
 
 
 def ptf_veri_cek():
-    hedef = datetime.now()
+    hedef = datetime.now() + timedelta(days=1)
     tarih_str = hedef.strftime("%Y-%m-%d")
     log.info(f"Bugünün ({tarih_str}) PTF verisi deneniyor... [TEST MODU]")
 
@@ -113,7 +113,6 @@ def ptf_veri_cek():
         log.error(f"HATA: Veri çekilirken bir sorun oluştu: {e}")
         return None, tarih_str
 
-
 def grafik_olustur(veri: list, tarih: str) -> str:
     def fmt_iki_satir_saat(s_no):
         try:
@@ -131,7 +130,7 @@ def grafik_olustur(veri: list, tarih: str) -> str:
     fig = plt.figure(figsize=(12, 7))
     fig.patch.set_facecolor("white")
 
-    ax_t = fig.add_axes([0.06, 0.01, 0.91, 0.24])
+    ax = fig.add_axes([0.06, 0.28, 0.91, 0.55])
     x = np.arange(n)
     bars = ax.bar(x, fiyatlar, color=NAVY, width=0.55, zorder=3)
     for bar, val in zip(bars, fiyatlar):
@@ -197,7 +196,7 @@ def grafik_olustur(veri: list, tarih: str) -> str:
     fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
     plt.close(fig)
     return base64.b64encode(buf.getvalue()).decode("utf-8")
-
+    
 def xlsx_olustur(veri: list, tarih: str) -> bytes:
     tarih_fmt = datetime.strptime(tarih, "%Y-%m-%d").strftime("%d.%m.%Y")
     NAVY_HEX    = "201F5A"
