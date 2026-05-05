@@ -178,30 +178,32 @@ def grafik_olustur(veri: list, tarih: str) -> str:
     ax_t.set_axis_off()
 
     tbl = ax_t.table(
-        cellText=[[f"{v:,.0f}" for v in fiyatlar]],
-        rowLabels=["PTF (TL/MWh)"],
-        colLabels=saat_araliklari,
-        cellLoc="center",
-        loc="center"
-    )
+    cellText=[
+        [s for s in saat_araliklari],
+        [f"{v:,.0f}" for v in fiyatlar]
+    ],
+    rowLabels=["Saat Aralığı", "PTF (TL/MWh)"],
+    cellLoc="center",
+    loc="center"
+)
     tbl.auto_set_font_size(False)
     tbl.set_fontsize(7)
 
-    for (ri, ci), cell in tbl.get_celld().items():
-        cell.set_linewidth(0.4)
-        cell.set_edgecolor("#BBBBBB")
-        if ri == 0:
-            cell.set_facecolor(NAVY)
-            cell.set_text_props(color="white", fontweight="bold", fontsize=7)
-            cell.set_height(0.55)
-        elif ci == -1:
-            cell.set_facecolor(NAVY)
-            cell.set_text_props(color="white", fontweight="bold", fontsize=7)
-            cell.set_height(0.45)
-        else:
-            cell.set_facecolor("#EFF4FB" if ci % 2 == 0 else "#FFFFFF")
-            cell.set_text_props(color=NAVY, fontweight="bold")
-            cell.set_height(0.45)
+for (ri, ci), cell in tbl.get_celld().items():
+    cell.set_linewidth(0.4)
+    cell.set_edgecolor("#BBBBBB")
+    if ci == -1:
+        cell.set_facecolor(NAVY)
+        cell.set_text_props(color="white", fontweight="bold", fontsize=7)
+        cell.set_height(0.45)
+    elif ri == 1:
+        cell.set_facecolor(NAVY)
+        cell.set_text_props(color="white", fontweight="bold", fontsize=7)
+        cell.set_height(0.45)
+    else:
+        cell.set_facecolor("#EFF4FB" if ci % 2 == 0 else "#FFFFFF")
+        cell.set_text_props(color=NAVY, fontweight="bold")
+        cell.set_height(0.45)
 
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
