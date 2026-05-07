@@ -78,7 +78,6 @@ def saat_aralik(saat_no: str) -> str:
         return saat_no
 
 
-
 def ptf_veri_cek():
     hedef = datetime.now() + timedelta(days=1)
     tarih_str = hedef.strftime("%Y-%m-%d")
@@ -86,28 +85,25 @@ def ptf_veri_cek():
 
     try:
         df = eptr.call("interim-mcp", start_date=tarih_str, end_date=tarih_str)
-
         if df is None or df.empty:
-            log.warning(f"⚠️ {tarih_str} tarihli PTF verisi henüz yayınlanmamış.")
             return None, tarih_str
 
         veri = []
         for _, row in df.iterrows():
-            saat_no = str(row.get("hour", ""))
             fiyat = row.get("marketTradePrice", 0.0)
-            # Ağırlıklı ortalama için gereken miktar verisi
+            # Ağırlıklı ortalama için gerçek eşleşme miktarını çekiyoruz
             miktar = row.get("matchingQuantity", 0.0) 
             
             veri.append({
-                "saat_no": saat_no,
-                "saat": saat_aralik(saat_no),
+                "saat_no": str(row.get("hour", "")),
+                "saat": saat_aralik(str(row.get("hour", ""))),
                 "fiyat": fiyat,
                 "miktar": miktar
             })
-
-        log.info(f"✓ Veriler alındı.")
         return veri, tarih_str
-
+    except Exception as e:
+        log.error(f"HATA: {e}")
+        return None, tarih_str
     except Exception as e:
         log.error(f"HATA: {e}")
         return None, tarih_str
@@ -205,22 +201,14 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     ws = wb.active
     ws.title = "PTF Verileri"
 
-    # Sütun Genişlikleri (Görseldeki gibi)
+    # Sütun Genişlikleri ve Header (Görseldeki Orijinal Düzen)
     ws.column_dimensions["A"].width = 20
     ws.column_dimensions["B"].width = 20
     ws.column_dimensions["C"].width = 15
     ws.row_dimensions[1].height = 48
-
-    # Başlık Alanı
     ws.merge_cells("B1:C1")
-    header_border = Border(
-        left=Side(style="medium", color=NAVY_HEX), right=Side(style="medium", color=NAVY_HEX),
-        top=Side(style="medium", color=NAVY_HEX), bottom=Side(style="medium", color=NAVY_HEX)
-    )
-    for col in ["A", "B", "C"]:
-        ws[f"{col}1"].border = header_border
 
-    # Logo
+    # Logo ve Başlık Alanı
     try:
         from openpyxl.drawing.image import Image as XLImage
         xl_logo = XLImage(LOGO_PATH_JPG)
@@ -229,26 +217,25 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
         ws.add_image(xl_logo)
     except:
         ws["A1"] = "ALPİNE ENERJİ"
-        ws["A1"].font = Font(name="Arial", size=14, bold=True, color=NAVY_HEX)
 
-    ws["B1"] = f"EPİAŞ Kesinleşmemiş PTF - {tarih_fmt}"
+    ws["B1"] = f"EPİAŞ Kesinleşmemiş PTF -\n{tarih_fmt}"
     ws["B1"].font = Font(name="Arial", size=11, bold=True, color=NAVY_HEX)
     ws["B1"].alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    # Tablo Başlık Satırı
     header_fill = PatternFill("solid", start_color=NAVY_HEX, end_color=NAVY_HEX)
     header_font = Font(bold=True, color="FFFFFF", name="Arial", size=11)
     thin_border = Border(left=Side(style="thin", color="CCCCCC"), right=Side(style="thin", color="CCCCCC"),
                          top=Side(style="thin", color="CCCCCC"), bottom=Side(style="thin", color="CCCCCC"))
 
+    # Tablo Başlıkları
     for ci, h in enumerate(["Tarih", "Saat Aralığı", "PTF (TL/MWh)"], start=1):
         c = ws.cell(row=4, column=ci, value=h)
         c.font = header_font; c.fill = header_fill; c.alignment = Alignment(horizontal="center"); c.border = thin_border
 
-    # Veriler ve Hesaplama Değişkenleri
+    # Veri Yazma ve Ortalama Hesaplama
     toplam_fiyat = 0
-    pay_toplami = 0
-    payda_toplami = 0
+    pay_toplami = 0   # Fiyat * Miktar
+    payda_toplami = 0 # Toplam Miktar
     son_satir = 4
 
     for i, row in enumerate(veri, start=5):
@@ -260,31 +247,32 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
 
         bg = "EFF4FB" if i % 2 == 0 else "FFFFFF"
         rf = PatternFill("solid", start_color=bg, end_color=bg)
-        fnt = Font(name="Arial", size=10, bold=True, color="000000")
+        fnt = Font(name="Arial", size=10, bold=True) # Punto boyutu verilerle aynı
 
         c1 = ws.cell(row=i, column=1, value=tarih_fmt); c1.font=fnt; c1.fill=rf; c1.border=thin_border; c1.alignment=Alignment(horizontal="center")
         c2 = ws.cell(row=i, column=2, value=row["saat"]); c2.font=fnt; c2.fill=rf; c2.border=thin_border; c2.alignment=Alignment(horizontal="center")
         c3 = ws.cell(row=i, column=3, value=f); c3.font=fnt; c3.fill=rf; c3.border=thin_border; c3.alignment=Alignment(horizontal="center"); c3.number_format='#,##0.00'
         son_satir = i
 
-    # Ortalamalar
+    # --- HESAPLAMALAR ---
     g_ort = toplam_fiyat / len(veri) if veri else 0
     a_ort = pay_toplami / payda_toplami if payda_toplami > 0 else g_ort
 
-    # --- LACİVERT SON 2 SATIR (Görselle aynı font: Arial 10 Bold) ---
-    for idx, (label, val) in enumerate([("GÜNLÜK ORTALAMA", g_ort), ("AĞIRLIKLI ORTALAMA", a_ort)], start=1):
-        r = son_satir + idx
-        ws.merge_cells(f"A{r}:B{r}")
-        fnt_white = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+    # --- SON 2 SATIRI EKLE (Lacivert, Beyaz Yazı, Arial 10 Bold) ---
+    def ort_satiri(r_idx, label, value):
+        ws.merge_cells(f"A{r_idx}:B{r_idx}")
+        fnt_ort = Font(name="Arial", size=10, bold=True, color="FFFFFF")
         
-        c_label = ws.cell(row=r, column=1, value=label)
-        c_val = ws.cell(row=r, column=3, value=val)
+        c_l = ws.cell(row=r_idx, column=1, value=label)
+        c_l.font = fnt_ort; c_l.fill = header_fill; c_l.border = thin_border; c_l.alignment = Alignment(horizontal="center")
         
-        for cell in [c_label, c_val]:
-            cell.font = fnt_white; cell.fill = header_fill; cell.border = thin_border; cell.alignment = Alignment(horizontal="center")
-        c_val.number_format = '#,##0.00'
+        c_v = ws.cell(row=r_idx, column=3, value=value)
+        c_v.font = fnt_ort; c_v.fill = header_fill; c_v.border = thin_border; c_v.alignment = Alignment(horizontal="center"); c_v.number_format='#,##0.00'
 
-    # --- GRAFİK (Orijinal düzen korunmuştur) ---
+    ort_satiri(son_satir + 1, "GÜNLÜK ORTALAMA", g_ort)
+    ort_satiri(son_satir + 2, "AĞIRLIKLI ORTALAMA", a_ort)
+
+    # --- GRAFİK (Görseldeki düzen - E5'e yapıştırır) ---
     saatler = [r["saat_no"] + ":00" for r in veri]
     fiyatlar = [float(r["fiyat"]) for r in veri]
     fig2, ax2 = plt.subplots(figsize=(8, 4))
@@ -299,8 +287,7 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
         logo_img2 = imread(LOGO_PATH_PNG)
         logo_ax2 = fig2.add_axes([0.78, 0.88, 0.18, 0.12])
         logo_ax2.imshow(logo_img2); logo_ax2.axis("off")
-    except:
-        fig2.text(0.95, 0.92, "ALPİNE\nENERJİ", fontsize=11, fontweight="black", color=NAVY_GRAPHIC, ha="right", va="top")
+    except: pass
 
     plt.tight_layout(rect=[0, 0, 0.9, 0.95])
     ibuf = io.BytesIO()
@@ -310,14 +297,13 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
 
     from openpyxl.drawing.image import Image as XLImage
     xl_img = XLImage(ibuf)
-    xl_img.anchor = "E5"
+    xl_img.anchor = "E5" # Görseldeki gibi tablonun sağına yerleştirir
     ws.add_image(xl_img)
 
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
     return buf.read()
-
 def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) -> str:
     tarih_fmt = datetime.strptime(tarih, "%Y-%m-%d").strftime("%d.%m.%Y")
     NAVY = "#201F5A"
