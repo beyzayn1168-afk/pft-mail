@@ -216,6 +216,7 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
         right=Side(style="medium", color=NAVY_HEX),
         top=Side(style="medium", color=NAVY_HEX), 
         bottom=Side(style="medium", color=NAVY_HEX)
+    )
     ws.merge_cells("B1:C1")
 
     # Logo ve Başlık Alanı
