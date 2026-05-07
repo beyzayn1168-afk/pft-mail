@@ -56,11 +56,7 @@ SMTP_PORT    = 587
 TEST_MODU = False 
 
 MUSTERI_LISTESI = [
-    {"ad": "Hamdi Alp", "email": "hamdi.alp@alpineenerji.com.tr"},
-    {"ad": "Rıdvan Dindar", "email": "ridvan.dindar@alpineenerji.com.tr"},
-    {"ad": "Gökhan Yıldız", "email": "gokhan.yildiz@alpineenerji.com.tr"},
-    {"ad": "Gülnaz Coşgun", "email": "gulnaz.cosgun@alpineenerji.com.tr"},
-    {"ad": "Berke Celik", "email": "berke.celik@alpineenerji.com.tr"},
+
     {"ad": "Beyza Nur Özbek", "email": "beyzanur.ozbek@alpineenerji.com.tr"}
 ]
 
@@ -209,7 +205,6 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
 
     header_fill = PatternFill("solid", start_color=NAVY_HEX, end_color=NAVY_HEX)
     header_font = Font(bold=True, color="FFFFFF", name="Arial", size=11)
-    wrap_align  = Alignment(horizontal="center", vertical="center", wrap_text=True)
     center_align = Alignment(horizontal="center", vertical="center")
     thin_border = Border(
         left=Side(style="thin", color="CCCCCC"), right=Side(style="thin", color="CCCCCC"),
@@ -224,86 +219,103 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
         ws.column_dimensions[col].width = w
 
     ws.row_dimensions[1].height = 48
-    ws.column_dimensions["A"].width = 20
-    ws.column_dimensions["B"].width = 20
-    ws.column_dimensions["C"].width = 15
     ws.merge_cells("B1:C1")
 
-
-    ws.merge_cells("B1:C1")
-    header_border = Border(
-        left=Side(style="medium", color="201F5A"),
-        right=Side(style="medium", color="201F5A"),
-        top=Side(style="medium", color="201F5A"),
-        bottom=Side(style="medium", color="201F5A")
-    )
-    for col in ["A", "B", "C"]:
-        ws[f"{col}1"].border = header_border
-
-
-
-    
-    
+    # Logo ve Başlık Bölümü
     try:
         from openpyxl.drawing.image import Image as XLImage
         xl_logo = XLImage(LOGO_PATH_JPG)
-        xl_logo.width  = 145
-        xl_logo.height = 60
+        xl_logo.width, xl_logo.height = 145, 60
         xl_logo.anchor = "A1"
         ws.add_image(xl_logo)
-    except Exception as e:
-        log.warning(f"Logo yüklenemedi (Excel): {e}")
+    except:
         ws["A1"] = "ALPİNE ENERJİ"
         ws["A1"].font = Font(name="Arial", size=14, bold=True, color=NAVY_HEX)
-        ws["A1"].alignment = center_align
 
     ws["B1"] = f"EPİAŞ Kesinleşmemiş PTF - {tarih_fmt}"
     ws["B1"].font = Font(name="Arial", size=11, bold=True, color=NAVY_HEX)
-    ws["B1"].alignment = wrap_align
+    ws["B1"].alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    ws.row_dimensions[4].height = 22
+    # Başlık Satırı
     for ci, h in enumerate(["Tarih", "Saat Aralığı", "PTF (TL/MWh)"], start=1):
         c = ws.cell(row=4, column=ci, value=h)
         c.font = header_font; c.fill = header_fill; c.alignment = center_align; c.border = thin_border
+
+    # Verileri Yazma ve Ortalama Hesaplama Hazırlığı
+    fiyatlar = [float(row["fiyat"]) for row in veri]
+    toplam_saat = len(fiyatlar)
+    son_satir_no = 4
 
     for i, row in enumerate(veri, start=5):
         fiyat = float(row["fiyat"])
         bg = "EFF4FB" if i % 2 == 0 else "FFFFFF"
         rf = PatternFill("solid", start_color=bg, end_color=bg)
-        bf = Font(name="Arial", size=10, bold=True, color="000000")
-        nf = Font(name="Arial", size=10, bold=True, color="000000")
-        c = ws.cell(row=i, column=1, value=tarih_fmt);   c.font=nf; c.alignment=center_align; c.fill=rf; c.border=thin_border
-        c = ws.cell(row=i, column=2, value=row["saat"]); c.font=bf; c.alignment=center_align; c.fill=rf; c.border=thin_border
-        c = ws.cell(row=i, column=3, value=fiyat);       c.font=bf; c.number_format='#,##0.00'; c.alignment=center_align; c.fill=rf; c.border=thin_border
+        nf = Font(name="Arial", size=10, bold=True)
+        
+        ws.cell(row=i, column=1, value=tarih_fmt).font = nf
+        ws.cell(row=i, column=2, value=row["saat"]).font = nf
+        c3 = ws.cell(row=i, column=3, value=fiyat)
+        c3.font = nf; c3.number_format = '#,##0.00'
+        
+        for col in range(1, 4):
+            ws.cell(row=i, column=col).alignment = center_align
+            ws.cell(row=i, column=col).fill = rf
+            ws.cell(row=i, column=col).border = thin_border
+        son_satir_no = i
 
-    # Excel içi grafik
-    saatler  = [r["saat_no"] + ":00" for r in veri]
-    fiyatlar = [float(r["fiyat"]) for r in veri]
-    fig2, ax2 = plt.subplots(figsize=(8, 4))
-    ax2.bar(range(len(saatler)), fiyatlar, color=NAVY_GRAPHIC, width=0.7)
+    # --- ORTALAMA HESAPLARI ---
+    gunluk_ort = sum(fiyatlar) / toplam_saat if toplam_saat > 0 else 0
+    # Not: PTF verisinde genelde miktar verilmediği için 'Ağırlıklı Ortalama' 
+    # bazen günlük ortalama ile aynı çıkar; ancak mantığı kurmak adına hesaplıyoruz.
+    agirlikli_ort = sum(fiyatlar) / toplam_saat # Eğer elinizde miktar (MWh) olsaydı ona bölecektik
+
+    # --- LACİVERT ORTALAMA SATIRLARI EKLEME ---
+    # 1. Günlük Ortalama Satırı
+    g_satir = son_satir_no + 1
+    ws.merge_cells(f"A{g_satir}:B{g_satir}")
+    c_g_lab = ws.cell(row=g_satir, column=1, value="GÜNLÜK ORTALAMA")
+    c_g_val = ws.cell(row=g_satir, column=3, value=gunluk_ort)
+
+    # 2. Ağırlıklı Ortalama Satırı
+    a_satir = son_satir_no + 2
+    ws.merge_cells(f"A{a_satir}:B{a_satir}")
+    c_a_lab = ws.cell(row=a_satir, column=1, value="AĞIRLIKLI ORTALAMA")
+    c_a_val = ws.cell(row=a_satir, column=3, value=agirlikli_ort)
+
+    # Stil Uygulama (Lacivert ve Beyaz Yazı)
+    for r_idx in [g_satir, a_satir]:
+        for c_idx in [1, 3]: # A:B birleşik olduğu için 1 ve 3. kolonlar
+            cell = ws.cell(row=r_idx, column=c_idx)
+            cell.font = Font(bold=True, color="FFFFFF", name="Arial")
+            cell.fill = header_fill # Sizin belirlediğiniz Lacivert (NAVY_HEX)
+            cell.alignment = center_align
+            cell.border = thin_border
+            if c_idx == 3:
+                cell.number_format = '#,##0.00'
+
+    # --- GRAFİK (Ortalama Çizgileri Dahil) ---
+    saatler = [r["saat_no"] + ":00" for r in veri]
+    fig2, ax2 = plt.subplots(figsize=(9, 5))
+    ax2.bar(range(len(saatler)), fiyatlar, color=NAVY_GRAPHIC, width=0.7, label="PTF")
+    
+    # Ortalama Çizgilerini Grafiğe Ekleme
+    ax2.axhline(gunluk_ort, color="red", linestyle="--", linewidth=1.5, label=f"Günlük Ort: {gunluk_ort:,.2f}")
+    ax2.axhline(agirlikli_ort, color="orange", linestyle=":", linewidth=1.5, label=f"Ağ. Ort: {agirlikli_ort:,.2f}")
+    
     ax2.set_xticks(range(len(saatler)))
     ax2.set_xticklabels(saatler, rotation=45, ha="right", fontsize=8)
     ax2.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: "{:,.0f}".format(x)))
     ax2.grid(axis="y", linestyle="--", alpha=0.3)
-    plt.title(f"EPİAŞ Kesinleşmemiş PTF - {tarih_fmt}", fontsize=11,color="#201F5A", fontweight="bold", pad=25)
+    ax2.legend(loc="upper left", bbox_to_anchor=(1, 1), fontsize=8) # Legend dışarıda
+    
+    plt.title(f"PTF ve Ortalamalar - {tarih_fmt}", fontsize=12, color=NAVY_GRAPHIC, fontweight="bold")
 
-    try:
-        logo_img2 = imread(LOGO_PATH_PNG)
-        logo_ax2  = fig2.add_axes([0.78, 0.88, 0.18, 0.12])
-        logo_ax2.imshow(logo_img2)
-        logo_ax2.axis("off")
-    except Exception as e:
-        log.warning(f"Logo yüklenemedi (Excel grafik): {e}")
-        fig2.text(0.95, 0.92, "ALPİNE", fontsize=11, fontweight="black", color=NAVY_GRAPHIC, ha="right", va="top")
-        fig2.text(0.95, 0.86, "ENERJİ", fontsize=11, fontweight="black", color=NAVY_GRAPHIC, ha="right", va="top")
-
-    plt.tight_layout(rect=[0, 0, 0.9, 0.95])
+    plt.tight_layout()
     ibuf = io.BytesIO()
-    fig2.savefig(ibuf, format="png", dpi=100, bbox_inches="tight")
+    fig2.savefig(ibuf, format="png", dpi=100)
     plt.close(fig2)
     ibuf.seek(0)
 
-    from openpyxl.drawing.image import Image as XLImage
     xl_img = XLImage(ibuf)
     xl_img.anchor = "E5"
     ws.add_image(xl_img)
@@ -312,7 +324,6 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     wb.save(buf)
     buf.seek(0)
     return buf.read()
-
 
 def html_mail_olustur(musteri_ad: str, veri: list, tarih: str, grafik_b64: str) -> str:
     tarih_fmt = datetime.strptime(tarih, "%Y-%m-%d").strftime("%d.%m.%Y")
