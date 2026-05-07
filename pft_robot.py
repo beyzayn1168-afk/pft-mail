@@ -211,6 +211,11 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
     ws.column_dimensions["B"].width = 20
     ws.column_dimensions["C"].width = 15
     ws.row_dimensions[1].height = 48
+    header_border_box = Border(
+        left=Side(style="medium", color=NAVY_HEX), 
+        right=Side(style="medium", color=NAVY_HEX),
+        top=Side(style="medium", color=NAVY_HEX), 
+        bottom=Side(style="medium", color=NAVY_HEX)
     ws.merge_cells("B1:C1")
 
     # Logo ve Başlık Alanı
