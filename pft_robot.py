@@ -78,6 +78,7 @@ def saat_aralik(saat_no: str) -> str:
         return saat_no
 
 
+
 def ptf_veri_cek():
     hedef = datetime.now() + timedelta(days=1)
     tarih_str = hedef.strftime("%Y-%m-%d")
@@ -85,25 +86,32 @@ def ptf_veri_cek():
 
     try:
         df = eptr.call("interim-mcp", start_date=tarih_str, end_date=tarih_str)
+
         if df is None or df.empty:
+            log.warning(f"⚠️ {tarih_str} tarihli PTF verisi henüz yayınlanmamış.")
             return None, tarih_str
 
         veri = []
         for _, row in df.iterrows():
-            fiyat = row.get("marketTradePrice", 0)
-            miktar = row.get("marketTradeAmount", 0) # Ağırlıklı ortalama için gerekli
             saat_no = str(row.get("hour", ""))
+            fiyat = row.get("marketTradePrice", 0.0)
+            # Ağırlıklı ortalama için gereken miktar verisi
+            miktar = row.get("matchingQuantity", 0.0) 
+            
             veri.append({
                 "saat_no": saat_no,
                 "saat": saat_aralik(saat_no),
                 "fiyat": fiyat,
                 "miktar": miktar
             })
+
+        log.info(f"✓ Veriler alındı.")
         return veri, tarih_str
+
     except Exception as e:
         log.error(f"HATA: {e}")
         return None, tarih_str
-
+        
 def grafik_olustur(veri: list, tarih: str) -> str:
     def fmt_iki_satir_saat(s_no):
         try:
@@ -191,19 +199,28 @@ def grafik_olustur(veri: list, tarih: str) -> str:
 def xlsx_olustur(veri: list, tarih: str) -> bytes:
     tarih_fmt = datetime.strptime(tarih, "%Y-%m-%d").strftime("%d.%m.%Y")
     NAVY_HEX = "201F5A"
-    
+    NAVY_GRAPHIC = "#201F5A"
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "PTF Verileri"
 
-    # Mevcut kolon genişliklerinizi koruyoruz
+    # Sütun Genişlikleri (Görseldeki gibi)
     ws.column_dimensions["A"].width = 20
     ws.column_dimensions["B"].width = 20
     ws.column_dimensions["C"].width = 15
     ws.row_dimensions[1].height = 48
 
-    # --- LOGO VE BAŞLIK (Sizin Orijinal Düzeniniz) ---
+    # Başlık Alanı
     ws.merge_cells("B1:C1")
+    header_border = Border(
+        left=Side(style="medium", color=NAVY_HEX), right=Side(style="medium", color=NAVY_HEX),
+        top=Side(style="medium", color=NAVY_HEX), bottom=Side(style="medium", color=NAVY_HEX)
+    )
+    for col in ["A", "B", "C"]:
+        ws[f"{col}1"].border = header_border
+
+    # Logo
     try:
         from openpyxl.drawing.image import Image as XLImage
         xl_logo = XLImage(LOGO_PATH_JPG)
@@ -212,68 +229,89 @@ def xlsx_olustur(veri: list, tarih: str) -> bytes:
         ws.add_image(xl_logo)
     except:
         ws["A1"] = "ALPİNE ENERJİ"
+        ws["A1"].font = Font(name="Arial", size=14, bold=True, color=NAVY_HEX)
 
     ws["B1"] = f"EPİAŞ Kesinleşmemiş PTF - {tarih_fmt}"
     ws["B1"].font = Font(name="Arial", size=11, bold=True, color=NAVY_HEX)
     ws["B1"].alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    # --- TABLO BAŞLIĞI ---
-    header_font = Font(bold=True, color="FFFFFF", name="Arial", size=11)
+    # Tablo Başlık Satırı
     header_fill = PatternFill("solid", start_color=NAVY_HEX, end_color=NAVY_HEX)
+    header_font = Font(bold=True, color="FFFFFF", name="Arial", size=11)
     thin_border = Border(left=Side(style="thin", color="CCCCCC"), right=Side(style="thin", color="CCCCCC"),
                          top=Side(style="thin", color="CCCCCC"), bottom=Side(style="thin", color="CCCCCC"))
 
     for ci, h in enumerate(["Tarih", "Saat Aralığı", "PTF (TL/MWh)"], start=1):
         c = ws.cell(row=4, column=ci, value=h)
-        c.font = header_font; c.fill = header_fill; c.alignment = Alignment(horizontal="center", vertical="center"); c.border = thin_border
+        c.font = header_font; c.fill = header_fill; c.alignment = Alignment(horizontal="center"); c.border = thin_border
 
-    # --- VERİ SATIRLARI ---
+    # Veriler ve Hesaplama Değişkenleri
     toplam_fiyat = 0
-    toplam_fiyat_x_miktar = 0
-    toplam_miktar = 0
+    pay_toplami = 0
+    payda_toplami = 0
     son_satir = 4
 
     for i, row in enumerate(veri, start=5):
-        fiyat = float(row["fiyat"])
-        miktar = float(row.get("miktar", 0))
-        
-        toplam_fiyat += fiyat
-        toplam_fiyat_x_miktar += (fiyat * miktar)
-        toplam_miktar += miktar
+        f = float(row["fiyat"])
+        m = float(row["miktar"])
+        toplam_fiyat += f
+        pay_toplami += (f * m)
+        payda_toplami += m
 
         bg = "EFF4FB" if i % 2 == 0 else "FFFFFF"
         rf = PatternFill("solid", start_color=bg, end_color=bg)
-        # Puntoları 10 yaparak diğer satırlarla eşitledik
         fnt = Font(name="Arial", size=10, bold=True, color="000000")
-        
+
         c1 = ws.cell(row=i, column=1, value=tarih_fmt); c1.font=fnt; c1.fill=rf; c1.border=thin_border; c1.alignment=Alignment(horizontal="center")
         c2 = ws.cell(row=i, column=2, value=row["saat"]); c2.font=fnt; c2.fill=rf; c2.border=thin_border; c2.alignment=Alignment(horizontal="center")
-        c3 = ws.cell(row=i, column=3, value=fiyat); c3.font=fnt; c3.fill=rf; c3.border=thin_border; c3.alignment=Alignment(horizontal="center"); c3.number_format='#,##0.00'
+        c3 = ws.cell(row=i, column=3, value=f); c3.font=fnt; c3.fill=rf; c3.border=thin_border; c3.alignment=Alignment(horizontal="center"); c3.number_format='#,##0.00'
         son_satir = i
 
-    # --- HESAPLAMALAR ---
-    gunluk_ort = toplam_fiyat / len(veri) if veri else 0
-    agirlikli_ort = toplam_fiyat_x_miktar / toplam_miktar if toplam_miktar > 0 else gunluk_ort
+    # Ortalamalar
+    g_ort = toplam_fiyat / len(veri) if veri else 0
+    a_ort = pay_toplami / payda_toplami if payda_toplami > 0 else g_ort
 
-    # --- ORTALAMA SATIRLARI (Aynı Punto, Lacivert Arka Plan) ---
-    def ort_satiri_ekle(satir_no, etiket, deger):
-        ws.merge_cells(f"A{satir_no}:B{satir_no}")
-        # Font büyüklüğünü verilerle aynı (10) yaptık
-        fnt_beyaz = Font(name="Arial", size=10, bold=True, color="FFFFFF")
-        fill_navy = PatternFill("solid", start_color=NAVY_HEX, end_color=NAVY_HEX)
+    # --- LACİVERT SON 2 SATIR (Görselle aynı font: Arial 10 Bold) ---
+    for idx, (label, val) in enumerate([("GÜNLÜK ORTALAMA", g_ort), ("AĞIRLIKLI ORTALAMA", a_ort)], start=1):
+        r = son_satir + idx
+        ws.merge_cells(f"A{r}:B{r}")
+        fnt_white = Font(name="Arial", size=10, bold=True, color="FFFFFF")
         
-        c_label = ws.cell(row=satir_no, column=1, value=etiket)
-        c_label.font = fnt_beyaz; c_label.fill = fill_navy; c_label.alignment = Alignment(horizontal="center"); c_label.border = thin_border
+        c_label = ws.cell(row=r, column=1, value=label)
+        c_val = ws.cell(row=r, column=3, value=val)
         
-        c_val = ws.cell(row=satir_no, column=3, value=deger)
-        c_val.font = fnt_beyaz; c_val.fill = fill_navy; c_val.alignment = Alignment(horizontal="center"); c_val.border = thin_border; c_val.number_format = '#,##0.00'
+        for cell in [c_label, c_val]:
+            cell.font = fnt_white; cell.fill = header_fill; cell.border = thin_border; cell.alignment = Alignment(horizontal="center")
+        c_val.number_format = '#,##0.00'
 
-    ort_satiri_ekle(son_satir + 1, "GÜNLÜK ORTALAMA", gunluk_ort)
-    ort_satiri_ekle(son_satir + 2, "AĞIRLIKLI ORTALAMA", agirlikli_ort)
+    # --- GRAFİK (Orijinal düzen korunmuştur) ---
+    saatler = [r["saat_no"] + ":00" for r in veri]
+    fiyatlar = [float(r["fiyat"]) for r in veri]
+    fig2, ax2 = plt.subplots(figsize=(8, 4))
+    ax2.bar(range(len(saatler)), fiyatlar, color=NAVY_GRAPHIC, width=0.7)
+    ax2.set_xticks(range(len(saatler)))
+    ax2.set_xticklabels(saatler, rotation=45, ha="right", fontsize=8)
+    ax2.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: "{:,.0f}".format(x)))
+    ax2.grid(axis="y", linestyle="--", alpha=0.3)
+    plt.title(f"EPİAŞ Kesinleşmemiş PTF - {tarih_fmt}", fontsize=11, color=NAVY_GRAPHIC, fontweight="bold", pad=25)
 
-    # --- GRAFİK EKLEME (Orijinal Kodundaki gibi dokunmadan ekliyoruz) ---
-    # ... (Buradaki plt kodlarını orijinal dosyanızdaki gibi bırakın, sadece anchor'ı son satıra göre güncelleyebilirsiniz)
-    # Grafiği anchor="E5" yaparak sağa sabitledim ki tabloyu kapatmasın.
+    try:
+        logo_img2 = imread(LOGO_PATH_PNG)
+        logo_ax2 = fig2.add_axes([0.78, 0.88, 0.18, 0.12])
+        logo_ax2.imshow(logo_img2); logo_ax2.axis("off")
+    except:
+        fig2.text(0.95, 0.92, "ALPİNE\nENERJİ", fontsize=11, fontweight="black", color=NAVY_GRAPHIC, ha="right", va="top")
+
+    plt.tight_layout(rect=[0, 0, 0.9, 0.95])
+    ibuf = io.BytesIO()
+    fig2.savefig(ibuf, format="png", dpi=100, bbox_inches="tight")
+    plt.close(fig2)
+    ibuf.seek(0)
+
+    from openpyxl.drawing.image import Image as XLImage
+    xl_img = XLImage(ibuf)
+    xl_img.anchor = "E5"
+    ws.add_image(xl_img)
 
     buf = io.BytesIO()
     wb.save(buf)
