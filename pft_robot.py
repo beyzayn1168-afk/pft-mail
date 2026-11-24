@@ -61,7 +61,8 @@ MUSTERI_LISTESI = [
     {"ad": "Gökhan Yıldız", "email": "gokhan.yildiz@alpineenerji.com.tr"},
     {"ad": "Gülnaz Coşgun", "email": "gulnaz.cosgun@alpineenerji.com.tr"},
     {"ad": "Beyza Nur Özbek", "email": "beyzanur.ozbek@alpineenerji.com.tr"},
-    {"ad": "Demet Yüce Kılıç", "email": "demet.kilic@alpineenerji.com.tr"}
+    {"ad": "Demet Yüce Kılıç", "email": "demet.kilic@alpineenerji.com.tr"},
+    {"ad": "Bora Emanetoğlu", "email": "bora.emanetoglu@alpineenerji.com.tr"}
 ]
 
 # ─────────────────────────────────────────────
